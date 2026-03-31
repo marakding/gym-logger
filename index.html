@@ -114,6 +114,16 @@
   .bhf-lbl { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; }
   .bhf-val { font-size: 12px; font-family: var(--mono); color: var(--text); }
   .cycle-note { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; margin-top: 6px; }
+  .match-banner { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .match-card { background: var(--surface); border: 1px solid rgba(200,240,160,0.3); border-radius: 12px; padding: 13px 15px; margin-bottom: 8px; }
+  .match-parsed { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-bottom: 8px; }
+  .match-parsed span { color: var(--danger); text-transform: capitalize; }
+  .match-options { display: flex; flex-direction: column; gap: 6px; }
+  .match-opt { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 8px; border-radius: 8px; transition: background 0.15s; }
+  .match-opt:hover { background: var(--surface2); }
+  .match-opt input[type=radio] { accent-color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; }
+  .match-opt-lbl { font-family: var(--mono); font-size: 13px; color: var(--text); text-transform: capitalize; }
+  .match-opt-lbl.new-ex { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -144,6 +154,7 @@
     <div class="preview" id="pv-gym">
       <span class="plabel">Parsed exercises</span>
       <div class="ex-cards" id="ec-gym"></div>
+      <div id="match-section" style="display:none;"><div class="match-banner">Check exercise names</div><div id="match-cards"></div></div>
       <div class="act-row">
         <button class="btn" onclick="discard('gym')">Discard</button>
         <button class="btn green" id="sv-gym" onclick="saveGym()">Save to sheet</button>
@@ -309,8 +320,57 @@ async function parseGym(t){
     gymRows=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
     document.getElementById('ec-gym').innerHTML=gymRows.map(r=>`<div class="ex-card"><div><div class="ex-name">${r.exercise}</div>${r.notes?`<div class="ex-note">${r.notes}</div>`:''}</div><div class="ex-meta">${r.sets}×${r.reps}${r.weight_kg?' @ '+r.weight_kg+'kg':''}</div></div>`).join('');
     document.getElementById('pv-gym').classList.add('show');
+    checkFuzzyMatches();
   }catch(e){sMsg('gym','Parse error: '+e.message,'err');}
   resetBtn('gym');
+}
+
+function levenshtein(a,b){
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function fuzzyMatch(name, existing){
+  const n=name.toLowerCase().trim();
+  const scored=existing.map(e=>{
+    const e2=e.toLowerCase().trim();
+    if(e2===n)return{name:e,score:0};
+    const dist=levenshtein(n,e2);
+    const maxLen=Math.max(n.length,e2.length);
+    const sim=1-dist/maxLen;
+    return{name:e,score:dist,sim};
+  }).filter(x=>x.score>0&&x.sim>0.6).sort((a,b)=>a.score-b.score);
+  return scored.slice(0,3);
+}
+
+function checkFuzzyMatches(){
+  const existing=[...new Set(gymData.map(r=>r.exercise))];
+  if(!existing.length){document.getElementById('match-section').style.display='none';return;}
+  const matches=[];
+  gymRows.forEach((r,i)=>{
+    const candidates=fuzzyMatch(r.exercise,existing);
+    const exact=existing.some(e=>e.toLowerCase()===r.exercise.toLowerCase());
+    if(!exact&&candidates.length>0)matches.push({idx:i,parsed:r.exercise,candidates});
+  });
+  const ms=document.getElementById('match-section');
+  if(!matches.length){ms.style.display='none';return;}
+  ms.style.display='block';
+  document.getElementById('match-cards').innerHTML=matches.map(m=>`
+    <div class="match-card">
+      <div class="match-parsed">Heard: <span>${m.parsed}</span></div>
+      <div class="match-options">
+        ${m.candidates.map(c=>`<label class="match-opt"><input type="radio" name="match-${m.idx}" value="${c.name}" onchange="applyMatch(${m.idx},this.value)"><span class="match-opt-lbl">${c.name}</span></label>`).join('')}
+        <label class="match-opt"><input type="radio" name="match-${m.idx}" value="${m.parsed}" checked onchange="applyMatch(${m.idx},this.value)"><span class="match-opt-lbl new-ex">Keep "${m.parsed}" (new exercise)</span></label>
+      </div>
+    </div>`).join('');
+}
+
+function applyMatch(idx,name){
+  gymRows[idx].exercise=name;
+  const cards=document.getElementById('ec-gym').querySelectorAll('.ex-name');
+  if(cards[idx])cards[idx].textContent=name;
 }
 
 async function parseBody(t){
@@ -328,7 +388,7 @@ async function parseBody(t){
 }
 
 function clearPv(m){
-  if(m==='gym'){document.getElementById('pv-gym').classList.remove('show');gymRows=[];}
+  if(m==='gym'){document.getElementById('pv-gym').classList.remove('show');document.getElementById('match-section').style.display='none';gymRows=[];}
   else{document.getElementById('pv-body').classList.remove('show');bodyRow=null;}
 }
 function discard(m){
