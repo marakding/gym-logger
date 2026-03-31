@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>Gym Log</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+    --text: #f0ede8; --muted: #6b6760;
+    --accent: #c8f0a0; --accent-dim: rgba(200,240,160,0.12);
+    --accent2: #a0c8f0; --accent2-dim: rgba(160,200,240,0.12);
+    --danger: #f08080; --danger-dim: rgba(240,128,128,0.12);
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.5; overscroll-behavior: none; }
+  .app { max-width: 480px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding: 0 0 env(safe-area-inset-bottom, 20px); }
+  .header { padding: 48px 24px 16px; border-bottom: 1px solid var(--border); }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav-tabs { display: flex; background: var(--surface); border-radius: 10px; padding: 3px; }
+  .nav-tab { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: none; border: none; padding: 7px 10px; border-radius: 7px; cursor: pointer; transition: all 0.18s; }
+  .nav-tab.active { background: var(--surface2); color: var(--text); }
+  .panel { display: none; flex: 1; flex-direction: column; }
+  .panel.active { display: flex; }
+  .log-panel { padding: 28px 24px; gap: 22px; }
+  .record-section { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 4px 0; }
+  .record-btn { width: 90px; height: 90px; border-radius: 50%; border: 1.5px solid var(--border2); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; outline: none; }
+  .record-btn:active { transform: scale(0.95); }
+  .record-btn.recording { border-color: var(--danger); background: var(--danger-dim); animation: pulse 1.4s ease infinite; }
+  .record-btn.recording .mic-icon { color: var(--danger); }
+  .record-btn.processing { border-color: var(--accent); background: var(--accent-dim); }
+  .record-btn.body-idle { border-color: var(--accent2); }
+  .record-btn.body-idle .mic-icon { color: var(--accent2); }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(240,128,128,0); } 50% { box-shadow: 0 0 0 16px rgba(240,128,128,0.2); } }
+  .mic-icon { width: 30px; height: 30px; color: var(--muted); transition: color 0.2s; }
+  .spin-icon { width: 30px; height: 30px; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .rec-label { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .rec-label.on { color: var(--danger); }
+  .rec-label.busy { color: var(--accent); }
+  .hint { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; line-height: 1.8; }
+  .tbox { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 1.6; min-height: 60px; display: none; }
+  .tbox.show { color: var(--text); display: block; }
+  .preview { display: none; flex-direction: column; gap: 12px; }
+  .preview.show { display: flex; }
+  .plabel { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .ex-cards { display: flex; flex-direction: column; gap: 8px; }
+  .ex-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .ex-name { font-size: 14px; font-weight: 500; color: var(--text); text-transform: capitalize; }
+  .ex-meta { font-family: var(--mono); font-size: 12px; color: var(--accent); white-space: nowrap; }
+  .ex-note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .body-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 15px 17px; }
+  .body-card-date { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+  .body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bfield { background: var(--surface2); border-radius: 10px; padding: 9px 12px; }
+  .bfield-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .bfield-val { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--accent2); }
+  .bfield-val.empty { color: var(--muted); font-size: 13px; }
+  .bcycle { margin-top: 8px; background: var(--surface2); border-radius: 10px; padding: 9px 12px; display: flex; justify-content: space-between; align-items: center; }
+  .bcycle-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .bcycle-val { font-family: var(--mono); font-size: 14px; color: var(--accent); }
+  .act-row { display: flex; gap: 10px; }
+  .btn { flex: 1; padding: 13px; border-radius: 12px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--border2); background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.18s; }
+  .btn:active { transform: scale(0.98); }
+  .btn:hover { color: var(--text); }
+  .btn.green { background: var(--accent); color: #0a0a0a; border-color: transparent; }
+  .btn.green:hover { opacity: 0.88; }
+  .btn.blue { background: var(--accent2); color: #0a0a0a; border-color: transparent; }
+  .btn.blue:hover { opacity: 0.88; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .smsg { font-family: var(--mono); font-size: 12px; padding: 11px 14px; border-radius: 10px; display: none; }
+  .smsg.ok { display: block; background: rgba(200,240,160,0.1); color: var(--accent); }
+  .smsg.err { display: block; background: var(--danger-dim); color: var(--danger); }
+  .dash-panel { padding: 20px 24px; gap: 18px; overflow-y: auto; }
+  .shead { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .mrow { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-bottom: 14px; }
+  .mcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px; }
+  .mval { font-family: var(--mono); font-size: 19px; font-weight: 500; color: var(--text); }
+  .mlbl { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 3px; text-transform: uppercase; }
+  .chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip { font-family: var(--mono); font-size: 11px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; transition: all 0.15s; text-transform: capitalize; }
+  .chip.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .chip.bon.on { background: var(--accent2-dim); border-color: var(--accent2); color: var(--accent2); }
+  .mtoggle { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .mbtn { font-family: var(--mono); font-size: 10px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.15s; }
+  .mbtn.on { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .cwrap { position: relative; width: 100%; height: 210px; }
+  .cwrap-tall { position: relative; width: 100%; height: 250px; }
+  .lbwrap { display: flex; justify-content: center; padding: 4px 0 8px; }
+  .lbtn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border2); background: none; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .lbtn:hover { color: var(--text); }
+  .empty { text-align: center; padding: 28px 24px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .ttoggle { display: flex; gap: 6px; margin-bottom: 14px; }
+  .ttbtn { font-family: var(--mono); font-size: 11px; padding: 6px 13px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.15s; }
+  .ttbtn.on { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .hist-panel { padding: 20px 24px; overflow-y: auto; }
+  .dgrp { margin-bottom: 18px; }
+  .dlbl { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 7px; }
+  .hrow { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+  .hrow:last-child { border-bottom: none; }
+  .hname { font-size: 14px; color: var(--text); text-transform: capitalize; }
+  .hstats { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
+  .hvol { font-size: 11px; color: var(--accent); margin-top: 1px; }
+  .bhrow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .bhrow:last-child { border-bottom: none; }
+  .bhf-lbl { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; }
+  .bhf-val { font-size: 12px; font-family: var(--mono); color: var(--text); }
+  .cycle-note { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <span class="logo">Gym Log</span>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="go('log')">Log</button>
+        <button class="nav-tab" onclick="go('body')">Body</button>
+        <button class="nav-tab" onclick="go('dash')">Charts</button>
+        <button class="nav-tab" onclick="go('hist')">History</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="p-log" class="panel log-panel active">
+    <div class="record-section">
+      <button class="record-btn" id="rb-gym" onclick="tap('gym')">
+        <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+      </button>
+      <span class="rec-label" id="rl-gym">Tap to record</span>
+    </div>
+    <p class="hint">Name each exercise, sets, reps, weight and gym.</p>
+    <div class="tbox" id="tb-gym"></div>
+    <div class="smsg" id="sm-gym"></div>
+    <div class="preview" id="pv-gym">
+      <span class="plabel">Parsed exercises</span>
+      <div class="ex-cards" id="ec-gym"></div>
+      <div class="act-row">
+        <button class="btn" onclick="discard('gym')">Discard</button>
+        <button class="btn green" id="sv-gym" onclick="saveGym()">Save to sheet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div id="p-body" class="panel log-panel">
+    <div class="record-section">
+      <button class="record-btn body-idle" id="rb-body" onclick="tap('body')">
+        <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+      </button>
+      <span class="rec-label" id="rl-body">Tap to record</span>
+    </div>
+    <p class="hint">Say weight in kg, measurements in cm, and cycle day if known.<br>e.g. "70 kilo, waist 74, hips 96, chest 88, thighs 56, cycle day 12"</p>
+    <div class="tbox" id="tb-body"></div>
+    <div class="smsg" id="sm-body"></div>
+    <div class="preview" id="pv-body">
+      <span class="plabel">Parsed measurements</span>
+      <div id="bcard"></div>
+      <div class="act-row">
+        <button class="btn" onclick="discard('body')">Discard</button>
+        <button class="btn blue" id="sv-body" onclick="saveBody()">Save to sheet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASH -->
+  <div id="p-dash" class="panel dash-panel">
+    <div class="ttoggle">
+      <button class="ttbtn on" onclick="dswitch('gym',this)">Gym</button>
+      <button class="ttbtn" onclick="dswitch('body',this)">Body</button>
+    </div>
+    <div id="d-gym">
+      <div class="shead">Progression</div>
+      <div class="chips" id="lift-chips"><span class="empty" style="padding:4px 0;text-align:left;font-size:11px;">Load data first</span></div>
+      <div class="mtoggle">
+        <button class="mbtn on" onclick="setGM('weight',this)">Weight</button>
+        <button class="mbtn" onclick="setGM('volume',this)">Volume</button>
+        <button class="mbtn" onclick="setGM('sets',this)">Sets</button>
+      </div>
+      <div class="mrow" id="gm-row" style="display:none;">
+        <div class="mcard"><div class="mval" id="gm-best">—</div><div class="mlbl">Best kg</div></div>
+        <div class="mcard"><div class="mval" id="gm-last">—</div><div class="mlbl">Last kg</div></div>
+        <div class="mcard"><div class="mval" id="gm-sess">—</div><div class="mlbl">Sessions</div></div>
+      </div>
+      <div class="cwrap"><canvas id="gc"></canvas></div>
+    </div>
+    <div id="d-body" style="display:none;">
+      <div class="shead">Body over time</div>
+      <div class="chips" id="body-chips">
+        <button class="chip bon on" onclick="setBM('weight_kg',this)">Weight</button>
+        <button class="chip bon" onclick="setBM('waist',this)">Waist</button>
+        <button class="chip bon" onclick="setBM('hips',this)">Hips</button>
+        <button class="chip bon" onclick="setBM('chest',this)">Chest</button>
+        <button class="chip bon" onclick="setBM('thighs',this)">Thighs</button>
+      </div>
+      <div class="mrow" id="bm-row" style="display:none;">
+        <div class="mcard"><div class="mval" id="bm-cur">—</div><div class="mlbl">Current</div></div>
+        <div class="mcard"><div class="mval" id="bm-chg">—</div><div class="mlbl">Change</div></div>
+        <div class="mcard"><div class="mval" id="bm-cnt">—</div><div class="mlbl">Entries</div></div>
+      </div>
+      <div class="cwrap-tall"><canvas id="bc"></canvas></div>
+      <p class="cycle-note">Green dots = cycle day logged</p>
+    </div>
+    <div class="lbwrap"><button class="lbtn" id="load-btn" onclick="loadAll()">Load data from sheet</button></div>
+  </div>
+
+  <!-- HIST -->
+  <div id="p-hist" class="panel hist-panel">
+    <div class="ttoggle">
+      <button class="ttbtn on" onclick="hswitch('gym',this)">Gym</button>
+      <button class="ttbtn" onclick="hswitch('body',this)">Body</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;"><button class="lbtn" onclick="loadAll()">Refresh</button></div>
+    <div id="gh-list"><div class="empty">No data yet.</div></div>
+    <div id="bh-list" style="display:none;"><div class="empty">No measurements yet.</div></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
+<script>
+const SHEET_ID='1lgO9CsDBJj0AREzmoDGC0FJVIRXC2OCwxGKwUWQGhno';
+const GS='Sheet1', BS='Body';
+const SE='gym-logger@adept-primacy-309212.iam.gserviceaccount.com';
+const SK=`-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDbjHL8sR+VkyNj\nO16isjd3R4WTA15i9iXgI6fZx/XtyvXIgKUsJL5Mt3IsWbZc+jG/O3lej8Fl3EsZ\nXE2S5mqgrdLVLj5Xq4liOBGOejTxOWeY4DHIxO584iTYyWEfEwmm/w65MrjX2sHN\nT/1C5TdaUJEIhvTr+DyYY2ndbdSY2zwyU5kKVCBVfTnLdoc7nbDeIKOctePKeIHT\nolNz3ZeJ5Pj80QLBtgZnyDatF1JVX325lxSwPQceEGzeHum6X1LvwWSZ06+wTtLT\nTu8GP/ea7sC5QNwio94QC80lezV0eWrXYVyLKMf63b5sFep9nAb4+Y9yPDTlFpo5\ntVMU12INAgMBAAECggEAGUE4+fHbBv7vt2q9KlxzTmyDBEQDL8GOXk/jr0TV+JZb\n+wY3WdJZNKR2hP0F4gCix9Ns1PCW5+N1HRP11XPdaKHOKpkg8T9JdKur81aB8Ayx\nKtABUg27PFDcObbCjgtH1TaqSCn6QtRGblpo8PDCkwhJArDZjCpYOBRZeW/4oGOD\nFRns9xh3HIvwZHPJrMlr430U4nqqrAncPdQSTdP9VNcVBnqfprW9TYvmYVjmONjk\npg7N0K7Gb8MZxY9uL3F9xcUJ+MRmH/Yeu/58YY2yj3/QjiMPNI06yp5eWnNc1hfW\nuW0M/Umi21QqOmVKxRqlWSV3xoeGXEH6iqchYp6/wQKBgQD57CzHcUF9ftn6GTtz\ng6+BEE2dHMiwZK9elEK5oGl0I86Qp7X0Tm7zsDhWtf70UlBJQlld4t+8vd+bZlck\nppTqe2IhF54BQp6RUwxFIikJrbeXlXBIkkSuRn+r7TOPU4Z6Su8evxAzX6OhOBdF\nADmtAxnz9LEhrr5eM9XBBvyzwQKBgQDg4zCJdCVdhYCJlXICEPtQYZN6Pju5JpbG\n8ZC3aksJC3T1mFzami4a6qlnuptQofYeYubjWM806cC43CT+LFyW4hRYK4uJ/xRQ\nil0nr8ZX7Y8tfPef9pqvq1p3ob7oY/nUr4hKmtgmJH4WW8i/6ZxevROgAcPbO0p/\nL+pz5kWRTQKBgQCA3kAkwwhy7nL1XAdkw/U+RqrOpaXyFqi6yxYw4z8dDM2Zl3Di\nPYNGkooqZAPH9Z3CeLzeBXs6tmlTlwy+MEs/MUnjKGtn2PMsmjcMetXQUMwHFJ5m\nPU2+00lH3LKmZ/pCmtr77qcq5ljYa7TL9pbG2H+MZJLlfFZa+r1wn+qzwQKBgAvi\nFWN9/qd1cXhTrEWNrinuLgPMnA1Ji7gRdasrc7GTqGd92JI4iW0krzTq+GAHXuD2\nKusiezh5jZR3FYFUyMO0SIzsKCBvmRw0Y33AXQOyatllfBQ4zK2xqUMfCd5vwfjK\nGbKPghJp5Tu7N91kM74R0aKn1TiVZndYCdR7+3sVAoGBAIvAxe7o1Kt+M8qKBPkp\nybyCGVI98MdI/VW+2N6u74fu98wvuoz6hTOc3unTmTEwxAZMnJ+dd+rwtB2qg3cq\nanC+8UaS+8BNZAHVIUiIUofwqAijbpeCkg5BKOHOMYh/6fS+9VwVaDHXbvOOjuEp\n6YBDFli3nXwHvfUrRiNBuFfy\n-----END PRIVATE KEY-----\n`;
+
+let rec={gym:null,body:null}, recording={gym:false,body:false};
+let gymRows=[], bodyRow=null, gymData=[], bodyData=[];
+let gChart=null, bChart=null, gMetric='weight', bMetric='weight_kg', curLift='';
+
+const mic=`<svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>`;
+const spin=c=>`<svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>`;
+
+function go(t){
+  document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(e=>{e.classList.remove('active');e.style.display='none';});
+  document.querySelector(`.nav-tab[onclick="go('${t}')"]`).classList.add('active');
+  const p=document.getElementById('p-'+t); p.classList.add('active'); p.style.display='flex';
+}
+function dswitch(t,el){
+  document.querySelectorAll('#p-dash .ttbtn').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+  document.getElementById('d-gym').style.display=t==='gym'?'block':'none';
+  document.getElementById('d-body').style.display=t==='body'?'block':'none';
+}
+function hswitch(t,el){
+  document.querySelectorAll('#p-hist .ttbtn').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+  document.getElementById('gh-list').style.display=t==='gym'?'block':'none';
+  document.getElementById('bh-list').style.display=t==='body'?'block':'none';
+}
+
+function tap(m){ recording[m]?stopRec(m):startRec(m); }
+
+function startRec(m){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){sMsg(m,'Speech recognition not supported. Use Chrome.','err');return;}
+  const r=new SR(); r.lang='en-US'; r.continuous=true; r.interimResults=true;
+  rec[m]=r;
+  const tb=document.getElementById('tb-'+m);
+  tb.className='tbox show'; tb.textContent='…';
+  r.onresult=e=>{
+    let f='',i='';
+    for(let x=0;x<e.results.length;x++) e.results[x].isFinal?f+=e.results[x][0].transcript:i+=e.results[x][0].transcript;
+    tb.textContent=(f+i)||'…';
+  };
+  r.onerror=e=>{sMsg(m,'Mic error: '+e.error,'err');stopRec(m);};
+  r.onend=()=>{if(recording[m])r.start();};
+  r.start(); recording[m]=true;
+  const btn=document.getElementById('rb-'+m);
+  btn.className='record-btn recording'; btn.innerHTML=mic;
+  const lbl=document.getElementById('rl-'+m);
+  lbl.textContent='Tap to stop'; lbl.className='rec-label on';
+  clearPv(m); clearMsg(m);
+}
+
+function stopRec(m){
+  if(rec[m]){rec[m].onend=null;rec[m].stop();rec[m]=null;}
+  recording[m]=false;
+  const btn=document.getElementById('rb-'+m);
+  btn.className='record-btn processing'; btn.innerHTML=spin(m==='gym'?'#c8f0a0':'#a0c8f0');
+  const lbl=document.getElementById('rl-'+m);
+  lbl.textContent='Parsing…'; lbl.className='rec-label busy';
+  const t=document.getElementById('tb-'+m).textContent;
+  if(t&&t!=='…') m==='gym'?parseGym(t):parseBody(t);
+  else{resetBtn(m);sMsg(m,'Nothing recorded.','err');}
+}
+
+function resetBtn(m){
+  const btn=document.getElementById('rb-'+m);
+  btn.className='record-btn'+(m==='body'?' body-idle':''); btn.innerHTML=mic;
+  const lbl=document.getElementById('rl-'+m);
+  lbl.textContent='Tap to record'; lbl.className='rec-label';
+}
+
+async function parseGym(t){
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`Parse gym session transcripts into JSON. Return ONLY a valid JSON array, no markdown.\nEach element: {date,exercise,sets,reps,weight_kg,notes,gym}\n- date: "${today}" unless stated\n- exercise: normalized lowercase\n- sets/reps: numbers (0 if unknown)\n- weight_kg: per side if applicable (0 if bodyweight)\n- notes: string or ""\n- gym: name or ""`,messages:[{role:'user',content:t}]})});
+    const d=await res.json();
+    gymRows=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
+    document.getElementById('ec-gym').innerHTML=gymRows.map(r=>`<div class="ex-card"><div><div class="ex-name">${r.exercise}</div>${r.notes?`<div class="ex-note">${r.notes}</div>`:''}</div><div class="ex-meta">${r.sets}×${r.reps}${r.weight_kg?' @ '+r.weight_kg+'kg':''}</div></div>`).join('');
+    document.getElementById('pv-gym').classList.add('show');
+  }catch(e){sMsg('gym','Parse error: '+e.message,'err');}
+  resetBtn('gym');
+}
+
+async function parseBody(t){
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:`Parse body measurement voice note into JSON. Return ONLY a single JSON object, no markdown.\nFields: {date,weight_kg,waist,hips,chest,thighs,cycle_day,notes}\n- date: "${today}" unless stated\n- measurements in their natural units (kg or cm)\n- null for anything not mentioned\n- cycle_day: number or null`,messages:[{role:'user',content:t}]})});
+    const d=await res.json();
+    bodyRow=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
+    const b=bodyRow;
+    const flds=[{l:'Weight',v:b.weight_kg,u:'kg'},{l:'Waist',v:b.waist,u:'cm'},{l:'Hips',v:b.hips,u:'cm'},{l:'Chest',v:b.chest,u:'cm'},{l:'Thighs',v:b.thighs,u:'cm'}];
+    document.getElementById('bcard').innerHTML=`<div class="body-card"><div class="body-card-date">${b.date}</div><div class="body-grid">${flds.map(f=>`<div class="bfield"><div class="bfield-lbl">${f.l}</div><div class="bfield-val${f.v==null?' empty':''}">${f.v!=null?f.v+f.u:'—'}</div></div>`).join('')}</div>${b.cycle_day!=null?`<div class="bcycle"><span class="bcycle-lbl">Cycle day</span><span class="bcycle-val">Day ${b.cycle_day}</span></div>`:''}</div>`;
+    document.getElementById('pv-body').classList.add('show');
+  }catch(e){sMsg('body','Parse error: '+e.message,'err');}
+  resetBtn('body');
+}
+
+function clearPv(m){
+  if(m==='gym'){document.getElementById('pv-gym').classList.remove('show');gymRows=[];}
+  else{document.getElementById('pv-body').classList.remove('show');bodyRow=null;}
+}
+function discard(m){
+  clearPv(m);
+  const tb=document.getElementById('tb-'+m); tb.className='tbox'; tb.textContent='';
+  clearMsg(m);
+}
+
+async function getToken(){
+  const now=Math.floor(Date.now()/1000);
+  const jwt=KJUR.jws.JWS.sign('RS256',JSON.stringify({alg:'RS256',typ:'JWT'}),JSON.stringify({iss:SE,scope:'https://www.googleapis.com/auth/spreadsheets',aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now}),SK);
+  const res=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`});
+  const d=await res.json(); if(!d.access_token)throw new Error('Auth failed'); return d.access_token;
+}
+
+async function appendTo(token,sheet,rows,header){
+  const check=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheet)}!A1`,{headers:{Authorization:'Bearer '+token}});
+  const cd=await check.json();
+  const vals=cd.values?.length?rows:[header,...rows];
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheet)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({values:vals})});
+  const d=await r.json(); if(d.error)throw new Error(d.error.message);
+}
+
+async function saveGym(){
+  if(!gymRows.length)return;
+  const btn=document.getElementById('sv-gym'); btn.disabled=true; btn.textContent='Saving…';
+  try{
+    const token=await getToken();
+    await appendTo(token,GS,gymRows.map(r=>[r.date,r.exercise,r.sets,r.reps,r.weight_kg,r.notes||'',r.gym||'']),['Date','Exercise','Sets','Reps','Weight (kg)','Notes','Gym']);
+    sMsg('gym',`Saved ${gymRows.length} exercise${gymRows.length>1?'s':''}.`,'ok');
+    discard('gym');
+  }catch(e){sMsg('gym','Save failed: '+e.message,'err');}
+  btn.disabled=false; btn.textContent='Save to sheet';
+}
+
+async function saveBody(){
+  if(!bodyRow)return;
+  const btn=document.getElementById('sv-body'); btn.disabled=true; btn.textContent='Saving…';
+  try{
+    const token=await getToken(); const b=bodyRow;
+    await appendTo(token,BS,[[b.date,b.weight_kg??'',b.waist??'',b.hips??'',b.chest??'',b.thighs??'',b.cycle_day??'',b.notes||'']],['Date','Weight (kg)','Waist (cm)','Hips (cm)','Chest (cm)','Thighs (cm)','Cycle Day','Notes']);
+    sMsg('body','Saved.','ok'); discard('body');
+  }catch(e){sMsg('body','Save failed: '+e.message,'err');}
+  btn.disabled=false; btn.textContent='Save to sheet';
+}
+
+async function loadAll(){
+  const btn=document.getElementById('load-btn'); btn.disabled=true; btn.textContent='Loading…';
+  try{
+    const token=await getToken();
+    await Promise.all([loadGym(token),loadBody(token)]);
+    renderGymHist(); renderBodyHist(); renderGymDash(); renderBodyDash();
+  }catch(e){document.getElementById('gh-list').innerHTML=`<div class="empty">Load failed: ${e.message}</div>`;}
+  btn.disabled=false; btn.textContent='Load data from sheet';
+}
+
+async function loadGym(token){
+  const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(GS)}!A:G`,{headers:{Authorization:'Bearer '+token}});
+  const d=await res.json();
+  gymData=!d.values||d.values.length<2?[]:d.values.slice(1).map(r=>({date:r[0]||'',exercise:(r[1]||'').toLowerCase(),sets:parseFloat(r[2])||0,reps:parseFloat(r[3])||0,weight_kg:parseFloat(r[4])||0,notes:r[5]||'',gym:r[6]||''}));
+}
+
+async function loadBody(token){
+  try{
+    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(BS)}!A:H`,{headers:{Authorization:'Bearer '+token}});
+    const d=await res.json();
+    bodyData=!d.values||d.values.length<2?[]:d.values.slice(1).map(r=>({date:r[0]||'',weight_kg:r[1]!==''?parseFloat(r[1]):null,waist:r[2]!==''?parseFloat(r[2]):null,hips:r[3]!==''?parseFloat(r[3]):null,chest:r[4]!==''?parseFloat(r[4]):null,thighs:r[5]!==''?parseFloat(r[5]):null,cycle_day:r[6]!==''?parseFloat(r[6]):null,notes:r[7]||''}));
+  }catch(e){bodyData=[];}
+}
+
+function renderGymHist(){
+  const el=document.getElementById('gh-list');
+  if(!gymData.length){el.innerHTML='<div class="empty">No sessions yet.</div>';return;}
+  const grp={};
+  gymData.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
+  el.innerHTML=Object.keys(grp).sort((a,b)=>b.localeCompare(a)).slice(0,30).map(d=>{
+    return `<div class="dgrp"><div class="dlbl">${d}</div>${grp[d].map(r=>{const v=r.sets&&r.reps&&r.weight_kg?r.sets*r.reps*r.weight_kg:0;return`<div class="hrow"><div class="hname">${r.exercise}</div><div class="hstats"><div>${r.sets}×${r.reps} @ ${r.weight_kg}kg</div>${v?`<div class="hvol">${v}kg vol</div>`:''}</div></div>`;}).join('')}</div>`;
+  }).join('');
+}
+
+function renderBodyHist(){
+  const el=document.getElementById('bh-list');
+  if(!bodyData.length){el.innerHTML='<div class="empty">No measurements yet.</div>';return;}
+  el.innerHTML=[...bodyData].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>{
+    const flds=[[r.weight_kg,'Weight','kg'],[r.waist,'Waist','cm'],[r.hips,'Hips','cm'],[r.chest,'Chest','cm'],[r.thighs,'Thighs','cm'],[r.cycle_day!=null?'Day '+r.cycle_day:null,'Cycle','']].filter(f=>f[0]!=null).map(f=>`<div><div class="bhf-lbl">${f[1]}</div><div class="bhf-val">${f[0]}${f[2]}</div></div>`);
+    return `<div class="dgrp"><div class="dlbl">${r.date}</div><div class="bhrow">${flds.join('')}</div></div>`;
+  }).join('');
+}
+
+function renderGymDash(){
+  const exs=[...new Set(gymData.map(r=>r.exercise))].sort();
+  const sel=document.getElementById('lift-chips');
+  if(!exs.length){sel.innerHTML='<span class="empty" style="padding:4px 0;text-align:left;font-size:11px;">No lifts yet</span>';return;}
+  sel.innerHTML=exs.map(e=>`<button class="chip${e===curLift?' on':''}" onclick="pickLift('${e}')">${e}</button>`).join('');
+  if(!curLift||!exs.includes(curLift))curLift=exs[0];
+  pickLift(curLift);
+}
+
+function pickLift(l){
+  curLift=l;
+  document.querySelectorAll('#lift-chips .chip').forEach(el=>el.classList.toggle('on',el.textContent.toLowerCase()===l));
+  drawGymChart();
+}
+
+function setGM(m,el){
+  gMetric=m;
+  document.querySelectorAll('#d-gym .mbtn').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+  drawGymChart();
+}
+
+function drawGymChart(){
+  const mr=document.getElementById('gm-row');
+  if(!curLift||!gymData.length){mr.style.display='none';return;}
+  const rows=gymData.filter(r=>r.exercise===curLift).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!rows.length)return;
+  mr.style.display='grid';
+  const best=Math.max(...rows.map(r=>r.weight_kg));
+  const last=rows[rows.length-1];
+  document.getElementById('gm-best').textContent=best+'kg';
+  document.getElementById('gm-last').textContent=last.weight_kg+'kg';
+  document.getElementById('gm-sess').textContent=[...new Set(rows.map(r=>r.date))].length;
+  const grp={};
+  rows.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
+  const labels=Object.keys(grp).sort();
+  const vals=labels.map(d=>{const dr=grp[d];return gMetric==='weight'?Math.max(...dr.map(r=>r.weight_kg)):gMetric==='volume'?dr.reduce((s,r)=>s+r.sets*r.reps*r.weight_kg,0):dr.reduce((s,r)=>s+r.sets,0);});
+  if(gChart){gChart.destroy();gChart=null;}
+  gChart=new Chart(document.getElementById('gc'),{type:'line',data:{labels,datasets:[{data:vals,borderColor:'#c8f0a0',backgroundColor:'rgba(200,240,160,0.07)',fill:true,tension:0.35,pointRadius:4,pointBackgroundColor:'#c8f0a0',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e1e',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#6b6760',bodyColor:'#f0ede8',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:13},callbacks:{label:c=>gMetric==='weight'?c.parsed.y+'kg':gMetric==='volume'?c.parsed.y+'kg vol':c.parsed.y+' sets'}}},scales:{x:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10},maxRotation:45,autoSkip:true},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'}},y:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'},beginAtZero:false}}}});
+}
+
+function renderBodyDash(){
+  if(!bodyData.length)return;
+  setBM(bMetric,document.querySelector('#body-chips .chip.bon.on')||document.querySelector('#body-chips .chip.bon'));
+}
+
+function setBM(m,el){
+  bMetric=m;
+  document.querySelectorAll('#body-chips .chip.bon').forEach(b=>b.classList.remove('on')); if(el)el.classList.add('on');
+  drawBodyChart();
+}
+
+function drawBodyChart(){
+  const mr=document.getElementById('bm-row');
+  if(!bodyData.length){mr.style.display='none';return;}
+  const sorted=[...bodyData].filter(r=>r[bMetric]!=null).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!sorted.length){mr.style.display='none';return;}
+  mr.style.display='grid';
+  const vals=sorted.map(r=>r[bMetric]);
+  const unit=bMetric==='weight_kg'?'kg':'cm';
+  const cur=vals[vals.length-1], first=vals[0];
+  const chg=+(cur-first).toFixed(1);
+  document.getElementById('bm-cur').textContent=cur+unit;
+  document.getElementById('bm-chg').textContent=(chg>0?'+':'')+chg+unit;
+  document.getElementById('bm-cnt').textContent=sorted.length;
+  if(bChart){bChart.destroy();bChart=null;}
+  bChart=new Chart(document.getElementById('bc'),{type:'line',data:{labels:sorted.map(r=>r.date),datasets:[{data:vals,borderColor:'#a0c8f0',backgroundColor:'rgba(160,200,240,0.07)',fill:true,tension:0.35,pointRadius:sorted.map(r=>r.cycle_day!=null?7:4),pointBackgroundColor:sorted.map(r=>r.cycle_day!=null?'#c8f0a0':'#a0c8f0'),borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e1e',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#6b6760',bodyColor:'#f0ede8',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:13},callbacks:{label:c=>c.parsed.y+unit,afterLabel:c=>sorted[c.dataIndex].cycle_day!=null?'cycle day '+sorted[c.dataIndex].cycle_day:''}}},scales:{x:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10},maxRotation:45,autoSkip:true},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'}},y:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'},beginAtZero:false}}}});
+}
+
+function sMsg(m,msg,t){const el=document.getElementById('sm-'+m);el.textContent=msg;el.className='smsg '+t;}
+function clearMsg(m){const el=document.getElementById('sm-'+m);el.className='smsg';}
+document.querySelectorAll('.panel').forEach(p=>{if(!p.classList.contains('active'))p.style.display='none';});
+</script>
+</body>
+</html>
