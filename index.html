@@ -134,6 +134,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .bhf-lbl{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;}
 .bhf-val{font-size:12px;font-family:var(--mono);color:var(--text);}
 .cycle-note{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;margin-top:5px;}
+.text-input-row{display:flex;gap:8px;align-items:flex-end;}
+.text-input-box{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;font-family:var(--mono);font-size:13px;color:var(--text);resize:none;min-height:44px;max-height:120px;outline:none;line-height:1.5;}
+.text-input-box:focus{border-color:rgba(200,240,160,0.4);}
+.text-input-box::placeholder{color:var(--muted);}
+.text-submit{padding:11px 14px;border-radius:12px;border:none;background:var(--accent);color:#0a0a0a;font-family:var(--mono);font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;letter-spacing:0.06em;text-transform:uppercase;}
+.text-submit.blue{background:var(--accent2);}
+.text-submit:active{opacity:0.8;}
+.input-toggle{display:flex;gap:6px;justify-content:center;}
+.itbtn{font-family:var(--mono);font-size:10px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;transition:all 0.15s;}
+.itbtn.on{background:var(--surface2);color:var(--text);border-color:var(--border2);}
 /* Today panel */
 .today-panel{padding:24px;gap:0;overflow-y:auto;}
 .today-header{margin-bottom:20px;}
@@ -193,13 +203,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 
   <!-- LOG -->
   <div id="p-log" class="panel log-panel">
-    <div class="record-section">
-      <button class="record-btn" id="rb-gym" onclick="tap('gym')">
-        <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-      </button>
-      <span class="rec-label" id="rl-gym">Tap to record</span>
+    <div class="input-toggle">
+      <button class="itbtn on" id="itbtn-gym-mic" onclick="setInputMode('gym','mic')">Voice</button>
+      <button class="itbtn" id="itbtn-gym-text" onclick="setInputMode('gym','text')">Text</button>
     </div>
-    <p class="hint">Name each exercise, sets, reps, weight and gym.</p>
+    <div id="gym-mic-input">
+      <div class="record-section">
+        <button class="record-btn" id="rb-gym" onclick="tap('gym')">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+        </button>
+        <span class="rec-label" id="rl-gym">Tap to record</span>
+      </div>
+      <p class="hint">Name each exercise, sets, reps, weight and gym.</p>
+    </div>
+    <div id="gym-text-input" style="display:none;">
+      <div class="text-input-row">
+        <textarea class="text-input-box" id="ti-gym" placeholder="e.g. bulgarian split squats 3 sets 10 reps 8kg, leg press 4x12 40kg, gym Vondelpark" rows="3"></textarea>
+      </div>
+      <button class="text-submit" style="width:100%;margin-top:8px;" onclick="submitText('gym')">Parse</button>
+    </div>
     <div class="tbox" id="tb-gym"></div>
     <div class="smsg" id="sm-gym"></div>
     <div class="preview" id="pv-gym">
@@ -215,13 +237,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 
   <!-- BODY -->
   <div id="p-body" class="panel log-panel">
-    <div class="record-section">
-      <button class="record-btn body-idle" id="rb-body" onclick="tap('body')">
-        <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-      </button>
-      <span class="rec-label" id="rl-body">Tap to record</span>
+    <div class="input-toggle">
+      <button class="itbtn on" id="itbtn-body-mic" onclick="setInputMode('body','mic')">Voice</button>
+      <button class="itbtn" id="itbtn-body-text" onclick="setInputMode('body','text')">Text</button>
     </div>
-    <p class="hint">Say weight in kg, measurements in cm, and cycle day if known.<br>e.g. "70 kilo, waist 74, hips 96, chest 88, thighs 56, cycle day 12"</p>
+    <div id="body-mic-input">
+      <div class="record-section">
+        <button class="record-btn body-idle" id="rb-body" onclick="tap('body')">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+        </button>
+        <span class="rec-label" id="rl-body">Tap to record</span>
+      </div>
+      <p class="hint">Say weight in kg, measurements in cm, and cycle day if known.<br>e.g. "70 kilo, waist 74, hips 96, chest 88, thighs 56, cycle day 12"</p>
+    </div>
+    <div id="body-text-input" style="display:none;">
+      <div class="text-input-row">
+        <textarea class="text-input-box" id="ti-body" placeholder="e.g. 63kg, waist 74, hips 96, chest 88, thighs 56, cycle day 12" rows="2"></textarea>
+      </div>
+      <button class="text-submit blue" style="width:100%;margin-top:8px;" onclick="submitText('body')">Parse</button>
+    </div>
     <div class="tbox" id="tb-body"></div>
     <div class="smsg" id="sm-body"></div>
     <div class="preview" id="pv-body">
@@ -533,6 +567,25 @@ function renderSuggestion(exercises){
 }
 
 // ── SPEECH ────────────────────────────────────────────────────────────────
+function setInputMode(m, mode){
+  document.getElementById('itbtn-'+m+'-mic').classList.toggle('on', mode==='mic');
+  document.getElementById('itbtn-'+m+'-text').classList.toggle('on', mode==='text');
+  document.getElementById(m+'-mic-input').style.display = mode==='mic'?'':'none';
+  document.getElementById(m+'-text-input').style.display = mode==='text'?'':'none';
+}
+
+function submitText(m){
+  const ta = document.getElementById('ti-'+m);
+  const t = ta.value.trim();
+  if(!t) return;
+  const btn = ta.nextElementSibling;
+  btn.disabled = true; btn.textContent = 'Parsing…';
+  document.getElementById('tb-'+m).className='tbox show';
+  document.getElementById('tb-'+m).textContent=t;
+  if(m==='gym') parseGym(t).finally(()=>{btn.disabled=false;btn.textContent='Parse';});
+  else parseBody(t).finally(()=>{btn.disabled=false;btn.textContent='Parse';});
+}
+
 function tap(m){recording[m]?stopRec(m):startRec(m);}
 
 function startRec(m){
@@ -543,8 +596,11 @@ function startRec(m){
   const tb=document.getElementById('tb-'+m);tb.className='tbox show';tb.textContent='…';
   r.onresult=e=>{
     let f='',i='';
-    for(let x=0;x<e.results.length;x++)e.results[x].isFinal?f+=e.results[x][0].transcript:i+=e.results[x][0].transcript;
-    tb.textContent=(f+i)||'…';
+    for(let x=0;x<e.results.length;x++){
+      if(e.results[x].isFinal) f+=e.results[x][0].transcript+' ';
+      else i=e.results[x][0].transcript;
+    }
+    tb.textContent=(f+i).trim()||'…';
   };
   r.onerror=e=>{sMsg(m,'Mic error: '+e.error,'err');stopRec(m);};
   r.onend=()=>{if(recording[m])r.start();};
