@@ -381,7 +381,9 @@ function getStrengthLevel(exercise, weightKg, bodyweightKg){
 function renderStrengthBar(exercise, weightKg){
   const bwEntry = bodyData.length ? [...bodyData].filter(r=>r.weight_kg!=null).sort((a,b)=>b.date.localeCompare(a.date))[0] : null;
   const bw = bwEntry?.weight_kg || null;
-  if(!bw) return '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Log your bodyweight in the Body tab to see strength comparison.</div>';
+  if(!bw) return '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Log your bodyweight in the Body tab to see strength comparison. (bodyData length: '+bodyData.length+')</div>';
+  const std = STRENGTH_STANDARDS[exercise.toLowerCase()];
+  if(!std) return '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">No standards data for: '+exercise+'</div>';
   const s = getStrengthLevel(exercise, weightKg, bw);
   if(!s) return '';
   const ticks = STRENGTH_STANDARDS[exercise.toLowerCase()].map(r=>(r*bw).toFixed(0)+'kg');
@@ -885,6 +887,8 @@ function renderGymDash(){
   if(!exs.length){sel.innerHTML='<span class="empty" style="padding:4px 0;text-align:left;font-size:11px;">No lifts yet</span>';return;}
   sel.innerHTML=exs.map(e=>`<button class="chip${e===curLift?' on':''}" onclick="pickLift('${e}')">${e}</button>`).join('');
   if(!curLift||!exs.includes(curLift))curLift=exs[0];
+  gMetric='weight';
+  document.querySelectorAll('#d-gym .mbtn').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()==='weight'));
   pickLift(curLift);
 }
 
@@ -913,7 +917,10 @@ function drawGymChart(){
   document.getElementById('gm-sess').textContent=[...new Set(rows.map(r=>r.date))].length;
   // Strength level indicator
   const barContainer=document.getElementById('strength-bar-container');
-  if(barContainer) barContainer.innerHTML=renderStrengthBar(curLift, best);
+  if(barContainer){
+    const barHtml=renderStrengthBar(curLift, best);
+    barContainer.innerHTML=barHtml||('<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">debug: lift='+curLift+' best='+best+' bodyData='+bodyData.length+'</div>');
+  }
   const grp={};rows.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
   const labels=Object.keys(grp).sort();
   const vals=labels.map(d=>{const dr=grp[d];return gMetric==='weight'?Math.max(...dr.map(r=>r.weight_kg)):gMetric==='volume'?dr.reduce((s,r)=>s+r.sets*r.reps*r.weight_kg,0):dr.reduce((s,r)=>s+r.sets,0);});
