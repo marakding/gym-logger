@@ -220,7 +220,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
       <div class="text-input-row">
         <textarea class="text-input-box" id="ti-gym" placeholder="e.g. bulgarian split squats 3 sets 10 reps 8kg, leg press 4x12 40kg, gym Vondelpark" rows="3"></textarea>
       </div>
-      <button class="text-submit" style="width:100%;margin-top:8px;" onclick="submitText('gym')">Parse</button>
+      <button class="text-submit" id="ts-btn-gym" style="width:100%;margin-top:8px;" onclick="submitText('gym')">Parse</button>
     </div>
     <div class="tbox" id="tb-gym"></div>
     <div class="smsg" id="sm-gym"></div>
@@ -254,7 +254,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
       <div class="text-input-row">
         <textarea class="text-input-box" id="ti-body" placeholder="e.g. 63kg, waist 74, hips 96, chest 88, thighs 56, cycle day 12" rows="2"></textarea>
       </div>
-      <button class="text-submit blue" style="width:100%;margin-top:8px;" onclick="submitText('body')">Parse</button>
+      <button class="text-submit blue" id="ts-btn-body" style="width:100%;margin-top:8px;" onclick="submitText('body')">Parse</button>
     </div>
     <div class="tbox" id="tb-body"></div>
     <div class="smsg" id="sm-body"></div>
@@ -578,7 +578,7 @@ function submitText(m){
   const ta = document.getElementById('ti-'+m);
   const t = ta.value.trim();
   if(!t) return;
-  const btn = ta.nextElementSibling;
+  const btn = document.getElementById('ts-btn-'+m);
   btn.disabled = true; btn.textContent = 'Parsing…';
   document.getElementById('tb-'+m).className='tbox show';
   document.getElementById('tb-'+m).textContent=t;
