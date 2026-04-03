@@ -591,19 +591,21 @@ function tap(m){recording[m]?stopRec(m):startRec(m);}
 function startRec(m){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){sMsg(m,'Speech recognition not supported. Use Chrome.','err');return;}
-  const r=new SR();r.lang='en-US';r.continuous=true;r.interimResults=true;
+  const r=new SR();r.lang='en-US';r.continuous=false;r.interimResults=false;
   rec[m]=r;
-  const tb=document.getElementById('tb-'+m);tb.className='tbox show';tb.textContent='…';
+  let accumulated='';
+  const tb=document.getElementById('tb-'+m);tb.className='tbox show';tb.textContent='Listening…';
   r.onresult=e=>{
-    let f='',i='';
     for(let x=0;x<e.results.length;x++){
-      if(e.results[x].isFinal) f+=e.results[x][0].transcript+' ';
-      else i=e.results[x][0].transcript;
+      if(e.results[x].isFinal) accumulated+=e.results[x][0].transcript+' ';
     }
-    tb.textContent=(f+i).trim()||'…';
+    tb.textContent=accumulated.trim()||'Listening…';
   };
-  r.onerror=e=>{sMsg(m,'Mic error: '+e.error,'err');stopRec(m);};
-  r.onend=()=>{if(recording[m])r.start();};
+  r.onerror=e=>{
+    if(e.error==='no-speech'){r.start();return;}
+    sMsg(m,'Mic error: '+e.error,'err');stopRec(m);
+  };
+  r.onend=()=>{if(recording[m]){r.start();}};
   r.start();recording[m]=true;
   const btn=document.getElementById('rb-'+m);
   btn.className='record-btn recording';btn.innerHTML=mic;
