@@ -383,11 +383,12 @@ function renderStrengthBar(exercise, weightKg){
   const s = getStrengthLevel(exercise, weightKg, bw);
   if(!s) return '';
   const ticks = STRENGTH_STANDARDS[exercise.toLowerCase()].map(r=>(r*bw).toFixed(0)+'kg');
-  return \`<div class="strength-bar">
-    <div class="strength-bar-label"><span>Strength level</span><span class="strength-level-badge \${s.colorClass}">\${s.label}</span></div>
-    <div class="strength-track"><div class="strength-fill" style="width:\${s.pct}%;background:\${s.level>=3?'#c8f0a0':s.level>=2?'#f0c87a':'#f08080'};"></div></div>
-    <div class="strength-ticks">\${ticks.map((t,i)=>\`<span title="\${LEVELS[i]}">\${t}</span>\`).join('')}<span>Elite</span></div>
-  </div>\`;
+  const tickHtml = ticks.map((t,i)=>'<span title="'+LEVELS[i]+'">'+t+'</span>').join('');
+  return '<div class="strength-bar">'
+    + '<div class="strength-bar-label"><span>Strength level</span><span class="strength-level-badge '+s.colorClass+'">'+s.label+'</span></div>'
+    + '<div class="strength-track"><div class="strength-fill" style="width:'+s.pct+'%;background:'+(s.level>=3?'#c8f0a0':s.level>=2?'#f0c87a':'#f08080')+'"></div></div>'
+    + '<div class="strength-ticks">'+tickHtml+'<span>Elite</span></div>'
+    + '</div>';
 }
 
 // ── EXERCISE DATABASE ─────────────────────────────────────────────────────
