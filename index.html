@@ -299,6 +299,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
         <div class="mcard"><div class="mval" id="gm-last">—</div><div class="mlbl">Last kg</div></div>
         <div class="mcard"><div class="mval" id="gm-sess">—</div><div class="mlbl">Sessions</div></div>
       </div>
+      <div id="strength-bar-container"></div>
       <div class="cwrap"><canvas id="gc"></canvas></div>
     </div>
     <div id="d-body" style="display:none;">
@@ -378,8 +379,9 @@ function getStrengthLevel(exercise, weightKg, bodyweightKg){
 }
 
 function renderStrengthBar(exercise, weightKg){
-  const bw = bodyData.length ? [...bodyData].filter(r=>r.weight_kg).sort((a,b)=>b.date.localeCompare(a.date))[0]?.weight_kg : null;
-  if(!bw) return '';
+  const bwEntry = bodyData.length ? [...bodyData].filter(r=>r.weight_kg!=null).sort((a,b)=>b.date.localeCompare(a.date))[0] : null;
+  const bw = bwEntry?.weight_kg || null;
+  if(!bw) return '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Log your bodyweight in the Body tab to see strength comparison.</div>';
   const s = getStrengthLevel(exercise, weightKg, bw);
   if(!s) return '';
   const ticks = STRENGTH_STANDARDS[exercise.toLowerCase()].map(r=>(r*bw).toFixed(0)+'kg');
@@ -464,6 +466,7 @@ async function autoLoad(){
     await Promise.all([loadGym(token),loadBody(token)]);
     renderGymHist();renderBodyHist();renderGymDash();renderBodyDash();
     updateTodayContext();
+    if(curLift) drawGymChart();
     setSyncStatus('ok');
   }catch(e){
     setSyncStatus('err');
@@ -831,6 +834,7 @@ async function loadAll(){
     const token=await getToken();
     await Promise.all([loadGym(token),loadBody(token)]);
     renderGymHist();renderBodyHist();renderGymDash();renderBodyDash();updateTodayContext();
+    if(curLift) drawGymChart();
     setSyncStatus('ok');
   }catch(e){
     setSyncStatus('err');
@@ -908,15 +912,8 @@ function drawGymChart(){
   document.getElementById('gm-last').textContent=last.weight_kg+'kg';
   document.getElementById('gm-sess').textContent=[...new Set(rows.map(r=>r.date))].length;
   // Strength level indicator
-  const existingBar=document.getElementById('strength-bar-container');
-  if(existingBar)existingBar.remove();
-  const barHtml=renderStrengthBar(curLift, best);
-  if(barHtml){
-    const container=document.createElement('div');
-    container.id='strength-bar-container';
-    container.innerHTML=barHtml;
-    document.getElementById('gm-row').after(container);
-  }
+  const barContainer=document.getElementById('strength-bar-container');
+  if(barContainer) barContainer.innerHTML=renderStrengthBar(curLift, best);
   const grp={};rows.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
   const labels=Object.keys(grp).sort();
   const vals=labels.map(d=>{const dr=grp[d];return gMetric==='weight'?Math.max(...dr.map(r=>r.weight_kg)):gMetric==='volume'?dr.reduce((s,r)=>s+r.sets*r.reps*r.weight_kg,0):dr.reduce((s,r)=>s+r.sets,0);});
