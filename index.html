@@ -134,6 +134,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .bhf-lbl{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;}
 .bhf-val{font-size:12px;font-family:var(--mono);color:var(--text);}
 .cycle-note{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;margin-top:5px;}
+.strength-bar{margin-top:12px;}
+.strength-bar-label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;display:flex;justify-content:space-between;}
+.strength-track{position:relative;height:6px;background:var(--surface2);border-radius:3px;margin-bottom:4px;}
+.strength-fill{height:100%;border-radius:3px;transition:width 0.4s ease;}
+.strength-ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--muted);}
+.strength-level-badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:6px;margin-top:6px;}
+.level-beginner{background:rgba(240,128,128,0.15);color:var(--danger);}
+.level-novice{background:rgba(240,200,122,0.15);color:var(--amber);}
+.level-intermediate{background:var(--accent-dim);color:var(--accent);}
+.level-advanced{background:rgba(160,200,240,0.15);color:var(--accent2);}
+.level-elite{background:rgba(200,160,240,0.15);color:#c8a0f0;}
+.day-total{font-family:var(--mono);font-size:11px;color:var(--accent);padding:5px 0 2px;border-top:1px solid var(--border);margin-top:4px;}
 .text-input-row{display:flex;gap:8px;align-items:flex-end;}
 .text-input-box{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;font-family:var(--mono);font-size:13px;color:var(--text);resize:none;min-height:44px;max-height:120px;outline:none;line-height:1.5;}
 .text-input-box:focus{border-color:rgba(200,240,160,0.4);}
@@ -329,6 +341,54 @@ const SHEET_ID='1lgO9CsDBJj0AREzmoDGC0FJVIRXC2OCwxGKwUWQGhno';
 const GS='Sheet1',BS='Body';
 const SE='gym-logger@adept-primacy-309212.iam.gserviceaccount.com';
 const SK=`-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDbjHL8sR+VkyNj\nO16isjd3R4WTA15i9iXgI6fZx/XtyvXIgKUsJL5Mt3IsWbZc+jG/O3lej8Fl3EsZ\nXE2S5mqgrdLVLj5Xq4liOBGOejTxOWeY4DHIxO584iTYyWEfEwmm/w65MrjX2sHN\nT/1C5TdaUJEIhvTr+DyYY2ndbdSY2zwyU5kKVCBVfTnLdoc7nbDeIKOctePKeIHT\nolNz3ZeJ5Pj80QLBtgZnyDatF1JVX325lxSwPQceEGzeHum6X1LvwWSZ06+wTtLT\nTu8GP/ea7sC5QNwio94QC80lezV0eWrXYVyLKMf63b5sFep9nAb4+Y9yPDTlFpo5\ntVMU12INAgMBAAECggEAGUE4+fHbBv7vt2q9KlxzTmyDBEQDL8GOXk/jr0TV+JZb\n+wY3WdJZNKR2hP0F4gCix9Ns1PCW5+N1HRP11XPdaKHOKpkg8T9JdKur81aB8Ayx\nKtABUg27PFDcObbCjgtH1TaqSCn6QtRGblpo8PDCkwhJArDZjCpYOBRZeW/4oGOD\nFRns9xh3HIvwZHPJrMlr430U4nqqrAncPdQSTdP9VNcVBnqfprW9TYvmYVjmONjk\npg7N0K7Gb8MZxY9uL3F9xcUJ+MRmH/Yeu/58YY2yj3/QjiMPNI06yp5eWnNc1hfW\nuW0M/Umi21QqOmVKxRqlWSV3xoeGXEH6iqchYp6/wQKBgQD57CzHcUF9ftn6GTtz\ng6+BEE2dHMiwZK9elEK5oGl0I86Qp7X0Tm7zsDhWtf70UlBJQlld4t+8vd+bZlck\nppTqe2IhF54BQp6RUwxFIikJrbeXlXBIkkSuRn+r7TOPU4Z6Su8evxAzX6OhOBdF\nADmtAxnz9LEhrr5eM9XBBvyzwQKBgQDg4zCJdCVdhYCJlXICEPtQYZN6Pju5JpbG\n8ZC3aksJC3T1mFzami4a6qlnuptQofYeYubjWM806cC43CT+LFyW4hRYK4uJ/xRQ\nil0nr8ZX7Y8tfPef9pqvq1p3ob7oY/nUr4hKmtgmJH4WW8i/6ZxevROgAcPbO0p/\nL+pz5kWRTQKBgQCA3kAkwwhy7nL1XAdkw/U+RqrOpaXyFqi6yxYw4z8dDM2Zl3Di\nPYNGkooqZAPH9Z3CeLzeBXs6tmlTlwy+MEs/MUnjKGtn2PMsmjcMetXQUMwHFJ5m\nPU2+00lH3LKmZ/pCmtr77qcq5ljYa7TL9pbG2H+MZJLlfFZa+r1wn+qzwQKBgAvi\nFWN9/qd1cXhTrEWNrinuLgPMnA1Ji7gRdasrc7GTqGd92JI4iW0krzTq+GAHXuD2\nKusiezh5jZR3FYFUyMO0SIzsKCBvmRw0Y33AXQOyatllfBQ4zK2xqUMfCd5vwfjK\nGbKPghJp5Tu7N91kM74R0aKn1TiVZndYCdR7+3sVAoGBAIvAxe7o1Kt+M8qKBPkp\nybyCGVI98MdI/VW+2N6u74fu98wvuoz6hTOc3unTmTEwxAZMnJ+dd+rwtB2qg3cq\nanC+8UaS+8BNZAHVIUiIUofwqAijbpeCkg5BKOHOMYh/6fS+9VwVaDHXbvOOjuEp\n6YBDFli3nXwHvfUrRiNBuFfy\n-----END PRIVATE KEY-----\n`;
+
+// ── STRENGTH STANDARDS ───────────────────────────────────────────────────
+// Source: publicly available strength standards (Lander/general community standards)
+// Format: [beginner, novice, intermediate, advanced, elite] as ratio of bodyweight
+const STRENGTH_STANDARDS = {
+  'bulgarian split squat':    [0.25, 0.45, 0.65, 0.85, 1.05],
+  'romanian deadlift':        [0.35, 0.55, 0.80, 1.05, 1.30],
+  'single leg romanian deadlift': [0.20, 0.35, 0.55, 0.75, 0.95],
+  'hip thrust':               [0.50, 0.80, 1.10, 1.45, 1.80],
+  'leg press':                [0.70, 1.10, 1.55, 2.05, 2.55],
+  'leg curl':                 [0.20, 0.30, 0.45, 0.60, 0.75],
+  'leg extension':            [0.25, 0.35, 0.50, 0.65, 0.80],
+  'lat pulldown':             [0.20, 0.35, 0.50, 0.65, 0.80],
+  'seated cable row':         [0.25, 0.40, 0.55, 0.72, 0.90],
+  'dumbbell row':             [0.15, 0.25, 0.38, 0.52, 0.65],
+  'dumbbell shoulder press':  [0.10, 0.18, 0.27, 0.37, 0.47],
+  'dumbbell bicep curl':      [0.08, 0.14, 0.20, 0.28, 0.36],
+  'reverse lunge':            [0.20, 0.35, 0.55, 0.75, 0.95],
+  'step up':                  [0.20, 0.35, 0.52, 0.70, 0.88],
+  'glute kickback':           [0.08, 0.14, 0.22, 0.30, 0.38],
+  'cable pull-through':       [0.25, 0.40, 0.58, 0.78, 0.98],
+};
+const LEVELS = ['Beginner','Novice','Intermediate','Advanced','Elite'];
+const LEVEL_COLORS = ['level-beginner','level-novice','level-intermediate','level-advanced','level-elite'];
+
+function getStrengthLevel(exercise, weightKg, bodyweightKg){
+  const std = STRENGTH_STANDARDS[exercise.toLowerCase()];
+  if(!std || !bodyweightKg) return null;
+  const ratio = weightKg / bodyweightKg;
+  let level = 0;
+  for(let i=0;i<std.length;i++) if(ratio >= std[i]) level = i+1;
+  level = Math.min(level, 4);
+  const pct = Math.min(100, Math.round((ratio / std[4]) * 100));
+  return { level, label: LEVELS[level] || LEVELS[4], colorClass: LEVEL_COLORS[level] || LEVEL_COLORS[4], pct, std, ratio };
+}
+
+function renderStrengthBar(exercise, weightKg){
+  const bw = bodyData.length ? [...bodyData].filter(r=>r.weight_kg).sort((a,b)=>b.date.localeCompare(a.date))[0]?.weight_kg : null;
+  if(!bw) return '';
+  const s = getStrengthLevel(exercise, weightKg, bw);
+  if(!s) return '';
+  const ticks = STRENGTH_STANDARDS[exercise.toLowerCase()].map(r=>(r*bw).toFixed(0)+'kg');
+  return \`<div class="strength-bar">
+    <div class="strength-bar-label"><span>Strength level</span><span class="strength-level-badge \${s.colorClass}">\${s.label}</span></div>
+    <div class="strength-track"><div class="strength-fill" style="width:\${s.pct}%;background:\${s.level>=3?'#c8f0a0':s.level>=2?'#f0c87a':'#f08080'};"></div></div>
+    <div class="strength-ticks">\${ticks.map((t,i)=>\`<span title="\${LEVELS[i]}">\${t}</span>\`).join('')}<span>Elite</span></div>
+  </div>\`;
+}
 
 // ── EXERCISE DATABASE ─────────────────────────────────────────────────────
 const EXERCISE_DB = [
@@ -797,7 +857,11 @@ function renderGymHist(){
   if(!gymData.length){el.innerHTML='<div class="empty">No sessions yet.</div>';return;}
   const grp={};
   gymData.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
-  el.innerHTML=Object.keys(grp).sort((a,b)=>b.localeCompare(a)).slice(0,30).map(d=>`<div class="dgrp"><div class="dlbl">${d}</div>${grp[d].map(r=>{const v=r.sets&&r.reps&&r.weight_kg?r.sets*r.reps*r.weight_kg:0;return`<div class="hrow"><div class="hname">${r.exercise}</div><div class="hstats"><div>${r.sets}×${r.reps} @ ${r.weight_kg}kg</div>${v?`<div class="hvol">${v}kg vol</div>`:''}</div></div>`;}).join('')}</div>`).join('');
+  el.innerHTML=Object.keys(grp).sort((a,b)=>b.localeCompare(a)).slice(0,30).map(d=>{
+    const rows=grp[d];
+    const dayTotal=rows.reduce((s,r)=>s+(r.sets&&r.reps&&r.weight_kg?r.sets*r.reps*r.weight_kg:0),0);
+    return `<div class="dgrp"><div class="dlbl">${d}</div>${rows.map(r=>{const v=r.sets&&r.reps&&r.weight_kg?r.sets*r.reps*r.weight_kg:0;return`<div class="hrow"><div class="hname">${r.exercise}</div><div class="hstats"><div>${r.sets}×${r.reps} @ ${r.weight_kg}kg</div>${v?`<div class="hvol">${v}kg vol</div>`:''}</div></div>`;}).join('')}${dayTotal?`<div class="day-total">Total volume: ${dayTotal.toLocaleString()}kg</div>`:''}</div>`;
+  }).join('');
 }
 
 function renderBodyHist(){
@@ -842,6 +906,16 @@ function drawGymChart(){
   document.getElementById('gm-best').textContent=best+'kg';
   document.getElementById('gm-last').textContent=last.weight_kg+'kg';
   document.getElementById('gm-sess').textContent=[...new Set(rows.map(r=>r.date))].length;
+  // Strength level indicator
+  const existingBar=document.getElementById('strength-bar-container');
+  if(existingBar)existingBar.remove();
+  const barHtml=renderStrengthBar(curLift, best);
+  if(barHtml){
+    const container=document.createElement('div');
+    container.id='strength-bar-container';
+    container.innerHTML=barHtml;
+    document.getElementById('gm-row').after(container);
+  }
   const grp={};rows.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
   const labels=Object.keys(grp).sort();
   const vals=labels.map(d=>{const dr=grp[d];return gMetric==='weight'?Math.max(...dr.map(r=>r.weight_kg)):gMetric==='volume'?dr.reduce((s,r)=>s+r.sets*r.reps*r.weight_kg,0):dr.reduce((s,r)=>s+r.sets,0);});
