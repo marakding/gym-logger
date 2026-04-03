@@ -346,47 +346,73 @@ const SK=`-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkA
 // ── STRENGTH STANDARDS ───────────────────────────────────────────────────
 // Source: publicly available strength standards (Lander/general community standards)
 // Format: [beginner, novice, intermediate, advanced, elite] as ratio of bodyweight
-const STRENGTH_STANDARDS = {
-  'bulgarian split squat':    [0.25, 0.45, 0.65, 0.85, 1.05],
-  'romanian deadlift':        [0.35, 0.55, 0.80, 1.05, 1.30],
-  'single leg romanian deadlift': [0.20, 0.35, 0.55, 0.75, 0.95],
-  'hip thrust':               [0.50, 0.80, 1.10, 1.45, 1.80],
-  'leg press':                [0.70, 1.10, 1.55, 2.05, 2.55],
-  'leg curl':                 [0.20, 0.30, 0.45, 0.60, 0.75],
-  'leg extension':            [0.25, 0.35, 0.50, 0.65, 0.80],
-  'lat pulldown':             [0.20, 0.35, 0.50, 0.65, 0.80],
-  'seated cable row':         [0.25, 0.40, 0.55, 0.72, 0.90],
-  'dumbbell row':             [0.15, 0.25, 0.38, 0.52, 0.65],
-  'dumbbell shoulder press':  [0.10, 0.18, 0.27, 0.37, 0.47],
-  'dumbbell bicep curl':      [0.08, 0.14, 0.20, 0.28, 0.36],
-  'reverse lunge':            [0.20, 0.35, 0.55, 0.75, 0.95],
-  'step up':                  [0.20, 0.35, 0.52, 0.70, 0.88],
-  'glute kickback':           [0.08, 0.14, 0.22, 0.30, 0.38],
-  'cable pull-through':       [0.25, 0.40, 0.58, 0.78, 0.98],
+// Strength standards stored as absolute kg for a 63kg female
+// Derived from strengthlevel.com per-exercise data
+// Scaled at runtime by actual bodyweight ratio
+const STRENGTH_STANDARDS_63 = {
+  // Legs
+  'bulgarian split squat':        [13, 23, 36, 52, 70],
+  'romanian deadlift':            [22, 38, 58, 82, 109],
+  'single leg romanian deadlift': [8,  16, 27, 40, 55],
+  'reverse lunge':                [11, 20, 32, 47, 64],
+  'step up':                      [10, 19, 31, 45, 61],
+  'leg press':                    [44, 74, 111,155,204],
+  'leg curl':                     [13, 21, 32, 46, 61],
+  'leg extension':                [16, 26, 39, 54, 71],
+  // Glutes
+  'hip thrust':                   [28, 51, 80, 115,154],
+  'hip thrust machine':           [28, 51, 80, 115,154],
+  'glute bridge':                 [20, 38, 61, 88, 118],
+  'glute kickback':               [5,  10, 17, 26, 36],
+  'cable pull-through':           [16, 27, 41, 58, 77],
+  'clamshell':                    [3,  6,  10, 15, 21],
+  // Upper pull
+  'lat pulldown':                 [19, 30, 45, 62, 81],
+  'seated cable row':             [18, 29, 43, 60, 79],
+  'dumbbell row':                 [11, 18, 27, 38, 51],
+  'cable face pull':              [9,  15, 23, 33, 44],
+  // Upper push
+  'dumbbell shoulder press':      [6,  11, 17, 25, 34],
+  'dumbbell bicep curl':          [5,  8,  13, 18, 25],
+  'tricep cable pushdown':        [8,  14, 21, 31, 42],
+  // Core
+  'pallof press':                 [5,  9,  15, 22, 30],
 };
+
+// Normalize standards by bodyweight ratio (based on 63kg reference)
+function getStandardsForBW(exercise, bw) {
+  const exLower = exercise.toLowerCase();
+  const matchKey = Object.keys(STRENGTH_STANDARDS_63).find(k => exLower === k)
+    || Object.keys(STRENGTH_STANDARDS_63).find(k => exLower.includes(k) || k.includes(exLower));
+  if(!matchKey) return null;
+  const base = STRENGTH_STANDARDS_63[matchKey];
+  const scale = bw / 63;
+  return { key: matchKey, standards: base.map(v => +(v * scale).toFixed(1)) };
+}
+
+const STRENGTH_STANDARDS = {}; // kept for compatibility
 const LEVELS = ['Beginner','Novice','Intermediate','Advanced','Elite'];
 const LEVEL_COLORS = ['level-beginner','level-novice','level-intermediate','level-advanced','level-elite'];
 
 function getStrengthLevel(exercise, weightKg, bodyweightKg){
-  const std = STRENGTH_STANDARDS[exercise.toLowerCase()];
-  if(!std || !bodyweightKg) return null;
-  const ratio = weightKg / bodyweightKg;
+  if(!bodyweightKg) return null;
+  const result = getStandardsForBW(exercise, bodyweightKg);
+  if(!result) return null;
+  const std = result.standards;
   let level = 0;
-  for(let i=0;i<std.length;i++) if(ratio >= std[i]) level = i+1;
+  for(let i=0;i<std.length;i++) if(weightKg >= std[i]) level = i+1;
   level = Math.min(level, 4);
-  const pct = Math.min(100, Math.round((ratio / std[4]) * 100));
-  return { level, label: LEVELS[level] || LEVELS[4], colorClass: LEVEL_COLORS[level] || LEVEL_COLORS[4], pct, std, ratio };
+  const pct = Math.min(100, Math.round((weightKg / std[4]) * 100));
+  return { level, label: LEVELS[level]||LEVELS[4], colorClass: LEVEL_COLORS[level]||LEVEL_COLORS[4], pct, std, key: result.key };
 }
 
 function renderStrengthBar(exercise, weightKg){
   const bwEntry = bodyData.length ? [...bodyData].filter(r=>r.weight_kg!=null).sort((a,b)=>b.date.localeCompare(a.date))[0] : null;
   const bw = bwEntry?.weight_kg || null;
-  if(!bw) return '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Log your bodyweight in the Body tab to see strength comparison. (bodyData length: '+bodyData.length+')</div>';
-  const std = STRENGTH_STANDARDS[exercise.toLowerCase()];
-  if(!std) return '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">No standards data for: '+exercise+'</div>';
+  if(!bw) return '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Log your bodyweight in the Body tab to see strength comparison.</div>';
   const s = getStrengthLevel(exercise, weightKg, bw);
   if(!s) return '';
-  const ticks = STRENGTH_STANDARDS[exercise.toLowerCase()].map(r=>(r*bw).toFixed(0)+'kg');
+  const ticks = s.std.map(v=>v+'kg');
   const tickHtml = ticks.map((t,i)=>'<span title="'+LEVELS[i]+'">'+t+'</span>').join('');
   return '<div class="strength-bar">'
     + '<div class="strength-bar-label"><span>Strength level</span><span class="strength-level-badge '+s.colorClass+'">'+s.label+'</span></div>'
@@ -918,8 +944,7 @@ function drawGymChart(){
   // Strength level indicator
   const barContainer=document.getElementById('strength-bar-container');
   if(barContainer){
-    const barHtml=renderStrengthBar(curLift, best);
-    barContainer.innerHTML=barHtml||('<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">debug: lift='+curLift+' best='+best+' bodyData='+bodyData.length+'</div>');
+    barContainer.innerHTML=renderStrengthBar(curLift, best);
   }
   const grp={};rows.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
   const labels=Object.keys(grp).sort();
