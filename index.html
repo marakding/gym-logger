@@ -344,92 +344,30 @@ const SE='gym-logger@adept-primacy-309212.iam.gserviceaccount.com';
 const SK=`-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDbjHL8sR+VkyNj\nO16isjd3R4WTA15i9iXgI6fZx/XtyvXIgKUsJL5Mt3IsWbZc+jG/O3lej8Fl3EsZ\nXE2S5mqgrdLVLj5Xq4liOBGOejTxOWeY4DHIxO584iTYyWEfEwmm/w65MrjX2sHN\nT/1C5TdaUJEIhvTr+DyYY2ndbdSY2zwyU5kKVCBVfTnLdoc7nbDeIKOctePKeIHT\nolNz3ZeJ5Pj80QLBtgZnyDatF1JVX325lxSwPQceEGzeHum6X1LvwWSZ06+wTtLT\nTu8GP/ea7sC5QNwio94QC80lezV0eWrXYVyLKMf63b5sFep9nAb4+Y9yPDTlFpo5\ntVMU12INAgMBAAECggEAGUE4+fHbBv7vt2q9KlxzTmyDBEQDL8GOXk/jr0TV+JZb\n+wY3WdJZNKR2hP0F4gCix9Ns1PCW5+N1HRP11XPdaKHOKpkg8T9JdKur81aB8Ayx\nKtABUg27PFDcObbCjgtH1TaqSCn6QtRGblpo8PDCkwhJArDZjCpYOBRZeW/4oGOD\nFRns9xh3HIvwZHPJrMlr430U4nqqrAncPdQSTdP9VNcVBnqfprW9TYvmYVjmONjk\npg7N0K7Gb8MZxY9uL3F9xcUJ+MRmH/Yeu/58YY2yj3/QjiMPNI06yp5eWnNc1hfW\nuW0M/Umi21QqOmVKxRqlWSV3xoeGXEH6iqchYp6/wQKBgQD57CzHcUF9ftn6GTtz\ng6+BEE2dHMiwZK9elEK5oGl0I86Qp7X0Tm7zsDhWtf70UlBJQlld4t+8vd+bZlck\nppTqe2IhF54BQp6RUwxFIikJrbeXlXBIkkSuRn+r7TOPU4Z6Su8evxAzX6OhOBdF\nADmtAxnz9LEhrr5eM9XBBvyzwQKBgQDg4zCJdCVdhYCJlXICEPtQYZN6Pju5JpbG\n8ZC3aksJC3T1mFzami4a6qlnuptQofYeYubjWM806cC43CT+LFyW4hRYK4uJ/xRQ\nil0nr8ZX7Y8tfPef9pqvq1p3ob7oY/nUr4hKmtgmJH4WW8i/6ZxevROgAcPbO0p/\nL+pz5kWRTQKBgQCA3kAkwwhy7nL1XAdkw/U+RqrOpaXyFqi6yxYw4z8dDM2Zl3Di\nPYNGkooqZAPH9Z3CeLzeBXs6tmlTlwy+MEs/MUnjKGtn2PMsmjcMetXQUMwHFJ5m\nPU2+00lH3LKmZ/pCmtr77qcq5ljYa7TL9pbG2H+MZJLlfFZa+r1wn+qzwQKBgAvi\nFWN9/qd1cXhTrEWNrinuLgPMnA1Ji7gRdasrc7GTqGd92JI4iW0krzTq+GAHXuD2\nKusiezh5jZR3FYFUyMO0SIzsKCBvmRw0Y33AXQOyatllfBQ4zK2xqUMfCd5vwfjK\nGbKPghJp5Tu7N91kM74R0aKn1TiVZndYCdR7+3sVAoGBAIvAxe7o1Kt+M8qKBPkp\nybyCGVI98MdI/VW+2N6u74fu98wvuoz6hTOc3unTmTEwxAZMnJ+dd+rwtB2qg3cq\nanC+8UaS+8BNZAHVIUiIUofwqAijbpeCkg5BKOHOMYh/6fS+9VwVaDHXbvOOjuEp\n6YBDFli3nXwHvfUrRiNBuFfy\n-----END PRIVATE KEY-----\n`;
 
 // ── STRENGTH STANDARDS ───────────────────────────────────────────────────
-// Source: publicly available strength standards (Lander/general community standards)
-// Format: [beginner, novice, intermediate, advanced, elite] as ratio of bodyweight
-// Strength standards stored as absolute kg for a 63kg female
-// Derived from strengthlevel.com per-exercise data
-// Scaled at runtime by actual bodyweight ratio
-const STRENGTH_STANDARDS_63 = {
-  // Legs
-  'bulgarian split squat':        [13, 23, 36, 52, 70],
-  'romanian deadlift':            [22, 38, 58, 82, 109],
-  'single leg romanian deadlift': [8,  16, 27, 40, 55],
-  'reverse lunge':                [11, 20, 32, 47, 64],
-  'step up':                      [10, 19, 31, 45, 61],
-  'leg press':                    [44, 74, 111,155,204],
-  'leg curl':                     [13, 21, 32, 46, 61],
-  'leg extension':                [16, 26, 39, 54, 71],
-  // Glutes
-  'hip thrust':                   [28, 51, 80, 115,154],
-  'hip thrust machine':           [28, 51, 80, 115,154],
-  'glute bridge':                 [20, 38, 61, 88, 118],
-  'glute kickback':               [5,  10, 17, 26, 36],
-  'cable pull-through':           [16, 27, 41, 58, 77],
-  'clamshell':                    [3,  6,  10, 15, 21],
-  // Upper pull
-  'lat pulldown':                 [19, 30, 45, 62, 81],
-  'seated cable row':             [18, 29, 43, 60, 79],
-  'dumbbell row':                 [11, 18, 27, 38, 51],
-  'cable face pull':              [9,  15, 23, 33, 44],
-  // Upper push
-  'dumbbell shoulder press':      [6,  11, 17, 25, 34],
-  'dumbbell bicep curl':          [5,  8,  13, 18, 25],
-  'tricep cable pushdown':        [8,  14, 21, 31, 42],
-  // Core
-  'pallof press':                 [5,  9,  15, 22, 30],
-  // Hip abductor/adductor machine (at 63kg female)
-  'hip abductor':                 [18, 30, 45, 62, 81],
-  'hip adductor':                 [20, 34, 50, 68, 88],
-  'abductor':                     [18, 30, 45, 62, 81],
-  'adductor':                     [20, 34, 50, 68, 88],
-};
-
-// Normalize standards by bodyweight ratio (based on 63kg reference)
-function getStandardsForBW(exercise, bw) {
-  const exLower = exercise.toLowerCase();
-  const keys = Object.keys(STRENGTH_STANDARDS_63);
-  // Exact match first
-  let matchKey = keys.find(k => exLower === k);
-  // Then longest partial match (more specific = better)
-  if(!matchKey){
-    const partials = keys.filter(k => exLower.includes(k) || k.includes(exLower));
-    if(partials.length) matchKey = partials.sort((a,b) => b.length - a.length)[0];
-  }
-  if(!matchKey) return null;
-  const base = STRENGTH_STANDARDS_63[matchKey];
-  const scale = bw / 63;
-  return { key: matchKey, standards: base.map(v => +(v * scale).toFixed(1)) };
-}
-
-const STRENGTH_STANDARDS = {}; // kept for compatibility
 const LEVELS = ['Beginner','Novice','Intermediate','Advanced','Elite'];
 const LEVEL_COLORS = ['level-beginner','level-novice','level-intermediate','level-advanced','level-elite'];
-
-const strengthCache = {}; // cleared on each page load
+const strengthCache = {};
 
 async function getStrengthLevelFromClaude(exercise, weightKg, bodyweightKg){
   const cacheKey = exercise.toLowerCase()+'_'+bodyweightKg;
-  if(strengthCache[cacheKey]) return computeLevel(strengthCache[cacheKey], weightKg);
-  
-  const res = await fetch(PROXY, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 300,
-    system: `You are a strength standards expert. Given an exercise name and female bodyweight, return strength standards in kg as a JSON object. Use strengthlevel.com as reference. Return ONLY valid JSON, no markdown.
-Format: {"canonical_name": "the standard name for this exercise", "beginner": N, "novice": N, "intermediate": N, "advanced": N, "elite": N}
-If you don't recognise the exercise or it has no meaningful strength standard (e.g. stretches, mobility work), return {"canonical_name": null}`,
-    messages: [{role:'user', content: `Exercise: "${exercise}"
-Female bodyweight: ${bodyweightKg}kg
-Return strength standards in kg for this exact bodyweight.`}]
-  })});
-  const data = await res.json();
-  const raw = data.content[0].text.replace(/\`\`\`json|\`\`\`/g,'').trim();
-  const parsed = JSON.parse(raw);
-  if(!parsed.canonical_name) return null;
-  strengthCache[cacheKey] = parsed;
-  return computeLevel(parsed, weightKg);
-}
-
-function computeLevel(parsed, weightKg){
+  let parsed = strengthCache[cacheKey];
+  if(!parsed){
+    const res = await fetch(PROXY, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 200,
+      system: `You are a strength standards expert. Given a gym exercise and a female bodyweight in kg, return strength level thresholds in kg based on strengthlevel.com standards.
+Return ONLY valid JSON, no markdown:
+{"canonical_name": "standard exercise name", "beginner": N, "novice": N, "intermediate": N, "advanced": N, "elite": N}
+If the exercise has no meaningful strength standard (cardio, stretching, warmup), return {"canonical_name": null}`,
+      messages: [{role:'user', content: `Exercise: "${exercise}"
+Female bodyweight: ${bodyweightKg}kg`}]
+    })});
+    const data = await res.json();
+    const raw = data.content[0].text.replace(/```json|```/g,'').trim();
+    parsed = JSON.parse(raw);
+    if(parsed.canonical_name) strengthCache[cacheKey] = parsed;
+  }
+  if(!parsed || !parsed.canonical_name) return null;
   const std = [parsed.beginner, parsed.novice, parsed.intermediate, parsed.advanced, parsed.elite];
   let level = 0;
   for(let i=0;i<std.length;i++) if(weightKg >= std[i]) level = i+1;
@@ -438,53 +376,24 @@ function computeLevel(parsed, weightKg){
   return { level, label: LEVELS[level]||LEVELS[4], colorClass: LEVEL_COLORS[level]||LEVEL_COLORS[4], pct, std, canonical: parsed.canonical_name };
 }
 
-function getStrengthLevel(exercise, weightKg, bodyweightKg){
-  if(!bodyweightKg) return null;
-  const result = getStandardsForBW(exercise, bodyweightKg);
-  if(!result) return null;
-  const std = result.standards;
-  let level = 0;
-  for(let i=0;i<std.length;i++) if(weightKg >= std[i]) level = i+1;
-  level = Math.min(level, 4);
-  const pct = Math.min(100, Math.round((weightKg / std[4]) * 100));
-  return { level, label: LEVELS[level]||LEVELS[4], colorClass: LEVEL_COLORS[level]||LEVEL_COLORS[4], pct, std, canonical: null };
-}
-
 async function renderStrengthBarAsync(exercise, weightKg){
   const bwEntry = bodyData.length ? [...bodyData].filter(r=>r.weight_kg!=null).sort((a,b)=>b.date.localeCompare(a.date))[0] : null;
   const bw = bwEntry?.weight_kg || null;
   const container = document.getElementById('strength-bar-container');
   if(!container) return;
   if(!bw){ container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Log your bodyweight in the Body tab to see strength comparison.</div>'; return; }
-  
-  // Always try local lookup first — never use Claude if local match exists
-  const localResult = getStandardsForBW(exercise, bw);
-  let s = localResult ? getStrengthLevel(exercise, weightKg, bw) : null;
-  
-  // Only call Claude if no local match
-  if(!s){
-    // Clear any stale cache entry for this exercise
-    const cacheKey = exercise.toLowerCase()+'_'+bw;
-    delete strengthCache[cacheKey];
-    container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Looking up standards…</div>';
-    try{ s = await getStrengthLevelFromClaude(exercise, weightKg, bw); }
-    catch(e){ container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">No standards data available.</div>'; return; }
-  }
-  
-  if(!s){ container.innerHTML=''; return; }
-  
-  const ticks = s.std.map(v=>v+'kg');
-  const tickHtml = ticks.map((t,i)=>'<span title="'+LEVELS[i]+'">'+t+'</span>').join('');
-  const matchNote = s.canonical ? '<span style="font-size:10px;color:var(--muted);font-style:normal;">comparing as: '+s.canonical+'</span>' : '';
-  container.innerHTML = '<div class="strength-bar">'
-    + '<div class="strength-bar-label"><span>Strength level '+matchNote+'</span><span class="strength-level-badge '+s.colorClass+'">'+s.label+'</span></div>'
-    + '<div class="strength-track"><div class="strength-fill" style="width:'+s.pct+'%;background:'+(s.level>=3?'#c8f0a0':s.level>=2?'#f0c87a':'#f08080')+'"></div></div>'
-    + '<div class="strength-ticks">'+tickHtml+'<span>Elite</span></div>'
-    + '</div>';
-}
-
-function renderStrengthBar(exercise, weightKg){
-  renderStrengthBarAsync(exercise, weightKg);
+  container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Looking up standards…</div>';
+  try{
+    const s = await getStrengthLevelFromClaude(exercise, weightKg, bw);
+    if(!s){ container.innerHTML=''; return; }
+    const tickHtml = s.std.map((v,i)=>'<span title="'+LEVELS[i]+'">'+v+'kg</span>').join('');
+    const matchNote = s.canonical.toLowerCase()!==exercise.toLowerCase() ? '<span style="font-size:10px;color:var(--muted);margin-left:6px;">via: '+s.canonical+'</span>' : '';
+    container.innerHTML = '<div class="strength-bar">'
+      + '<div class="strength-bar-label"><span>Strength level'+matchNote+'</span><span class="strength-level-badge '+s.colorClass+'">'+s.label+'</span></div>'
+      + '<div class="strength-track"><div class="strength-fill" style="width:'+s.pct+'%;background:'+(s.level>=3?'#c8f0a0':s.level>=2?'#f0c87a':'#f08080')+'"></div></div>'
+      + '<div class="strength-ticks">'+tickHtml+'<span>Elite</span></div>'
+      + '</div>';
+  }catch(e){ container.innerHTML=''; }
 }
 
 // ── EXERCISE DATABASE ─────────────────────────────────────────────────────
@@ -1008,11 +917,7 @@ function drawGymChart(){
   document.getElementById('gm-last').textContent=last.weight_kg+'kg';
   document.getElementById('gm-sess').textContent=[...new Set(rows.map(r=>r.date))].length;
   // Strength level indicator
-  const barContainer=document.getElementById('strength-bar-container');
-  if(barContainer){
-    barContainer.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Loading standards…</div>';
-    renderStrengthBarAsync(curLift, best);
-  }
+  renderStrengthBarAsync(curLift, best);
   const grp={};rows.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
   const labels=Object.keys(grp).sort();
   const vals=labels.map(d=>{const dr=grp[d];return gMetric==='weight'?Math.max(...dr.map(r=>r.weight_kg)):gMetric==='volume'?dr.reduce((s,r)=>s+r.sets*r.reps*r.weight_kg,0):dr.reduce((s,r)=>s+r.sets,0);});
