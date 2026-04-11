@@ -156,6 +156,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .input-toggle{display:flex;gap:6px;justify-content:center;}
 .itbtn{font-family:var(--mono);font-size:10px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;transition:all 0.15s;}
 .itbtn.on{background:var(--surface2);color:var(--text);border-color:var(--border2);}
+/* Chat panel */
+.chat-panel{padding:0;gap:0;display:flex;flex-direction:column;}
+.chat-messages{flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:12px;}
+.chat-msg{max-width:88%;line-height:1.55;font-size:14px;}
+.chat-msg.user{align-self:flex-end;background:var(--surface2);border-radius:14px 14px 4px 14px;padding:10px 14px;color:var(--text);}
+.chat-msg.assistant{align-self:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:14px 14px 14px 4px;padding:10px 14px;color:var(--text);}
+.chat-msg.assistant p{margin-bottom:6px;}
+.chat-msg.assistant p:last-child{margin-bottom:0;}
+.chat-msg.assistant strong{color:var(--accent);font-weight:500;}
+.chat-msg.thinking{align-self:flex-start;color:var(--muted);font-family:var(--mono);font-size:12px;padding:8px 0;}
+.chat-input-wrap{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--bg);}
+.chat-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:10px 13px;font-family:var(--sans);font-size:14px;color:var(--text);resize:none;min-height:42px;max-height:120px;outline:none;line-height:1.5;}
+.chat-input:focus{border-color:rgba(200,240,160,0.4);}
+.chat-input::placeholder{color:var(--muted);}
+.chat-send{width:40px;height:40px;border-radius:10px;border:none;background:var(--accent);color:#0a0a0a;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity 0.15s;}
+.chat-send:hover{opacity:0.85;}
+.chat-send:disabled{opacity:0.35;cursor:not-allowed;}
+.chat-context-bar{padding:8px 16px;font-family:var(--mono);font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);letter-spacing:0.04em;}
 /* Today panel */
 .today-panel{padding:24px;gap:0;overflow-y:auto;}
 .today-header{margin-bottom:20px;}
@@ -197,6 +215,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
       <button class="nav-tab" onclick="go('body')">Body</button>
       <button class="nav-tab" onclick="go('dash')">Charts</button>
       <button class="nav-tab" onclick="go('hist')">History</button>
+      <button class="nav-tab" onclick="go('chat')">Chat</button>
     </nav>
   </div>
 
@@ -331,6 +350,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
     <div style="display:flex;justify-content:flex-end;margin-bottom:13px;"><button class="lbtn" onclick="loadAll()">Refresh</button></div>
     <div id="gh-list"><div class="empty">Loading…</div></div>
     <div id="bh-list" style="display:none;"><div class="empty">Loading…</div></div>
+  </div>
+  <!-- CHAT -->
+  <div id="p-chat" class="panel chat-panel">
+    <div class="chat-context-bar" id="chat-context-bar">Loading context…</div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg assistant">Hi! I know your training history, physical context, and current progression. Ask me anything about your workouts — adjustments, soreness, planning, what to do next.</div>
+    </div>
+    <div class="chat-input-wrap">
+      <textarea class="chat-input" id="chat-input" placeholder="Ask about your training…" rows="1" onkeydown="chatKeydown(event)"></textarea>
+      <button class="chat-send" id="chat-send" onclick="sendChat()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -470,6 +502,7 @@ async function autoLoad(){
     renderGymHist();renderBodyHist();renderGymDash();renderBodyDash();
     updateTodayContext();
     if(curLift) drawGymChart();
+    updateChatContextBar();
     setSyncStatus('ok');
   }catch(e){
     setSyncStatus('err');
@@ -838,6 +871,7 @@ async function loadAll(){
     await Promise.all([loadGym(token),loadBody(token)]);
     renderGymHist();renderBodyHist();renderGymDash();renderBodyDash();updateTodayContext();
     if(curLift) drawGymChart();
+    updateChatContextBar();
     setSyncStatus('ok');
   }catch(e){
     setSyncStatus('err');
@@ -957,6 +991,180 @@ function drawBodyChart(){
 
 function sMsg(m,msg,t){const el=document.getElementById('sm-'+m);el.textContent=msg;el.className='smsg '+t;}
 function clearMsg(m){const el=document.getElementById('sm-'+m);el.className='smsg';}
+
+
+// ── CHAT ──────────────────────────────────────────────────────────────────
+const FITNESS_CONTEXT = `You are a knowledgeable fitness coach for Mara. Here is her complete physical and training context:
+
+## Physical Context
+- Age 38, 172cm. Current weight tracked in app.
+- Diastasis recti: 3.7cm. No crunches/sit-ups/oblique crunches. TVA activation must precede all loading. Core work must be functional and pressure-safe.
+- Pelvic floor: hypertonic with weakness. Hypertonic pelvic floor, delayed relaxation, trigger points bilaterally. Bladder prolapse on Valsalva. Progressive load only, no high-impact.
+- Motor control impairment: no autonomous TrA activation. No heavy compound loading until feedforward control is re-established.
+- Right glute max + medius weakness. Left glute medius + piriformis trigger points. Right psoas + iliacus trigger points.
+- SIJ dysfunction right side. Avoid asymmetric loading that stresses right SIJ.
+- Right internal hip rotation restricted with pain.
+- Left ankle instability — monitor single-leg work for compensation.
+- Lumbar: restricted ROM, pain on extension at L4/L5. No heavy axial loading.
+- CSI 50/100 (above threshold for central sensitisation) — pain signals amplified. Stress/fatigue worsen symptoms.
+- PCOS confirmed. Cycle ~35-37 days, irregular. Luteal phase starts ~day 22.
+
+## Training Principles
+- Unilateral and isolated exercises strongly preferred over bilateral compound lifts.
+- Bilateral hip thrusts tend to overload her lower back — single-leg hip thrusts preferred.
+- Single-leg RDL and cable pull-throughs preferred over bilateral RDL with heavy load.
+- Lunges and split squats preferred over bilateral squats.
+- Avoid: heavy Valsalva bracing, traditional ab work, high-impact, heavy bilateral compound loading.
+- Equipment available: dumbbells, barbells (light), cable machine, resistance bands, leg press, hip thrust machine.
+
+## Goals
+- Body recomposition: glutes > hamstrings > quads > upper body
+- Pelvic floor and diastasis rehabilitation
+- PCOS management through lifestyle
+- Long-term hormonal health
+
+## Nutrition
+- Protein-forward, ~1.6-2.0g/kg bodyweight
+- PCOS: protein+fat with meals to blunt glucose spikes, low-GI carbs, don't skip meals
+- Not tracking macros strictly
+
+## Interaction Style
+- Direct and concise. No preamble.
+- Lead with the practical insight.
+- She reads on mobile — keep responses scannable.
+- When she's frustrated, acknowledge briefly then move to problem-solving.
+- Don't over-praise. Don't suggest she see a doctor for every question (she has a physio, GP, and pelvic floor specialist).
+- Don't nag about foundation work but do mention it when relevant.`;
+let chatHistory = [];
+
+function getChatContext(){
+  const lastDate = getLastSessionDate();
+  const cycle = getCyclePhase();
+  const today = new Date().toISOString().split('T')[0];
+  const daysAgo = lastDate ? Math.round((new Date(today)-new Date(lastDate))/(1000*60*60*24)) : null;
+  
+  // Last 3 sessions (unique dates with at least one exercise)
+  const allDates = [...new Set(gymData.map(r=>r.date))].sort((a,b)=>b.localeCompare(a));
+  const last3Dates = allDates.slice(0,3);
+  const recentSessions = gymData.filter(r=>last3Dates.includes(r.date));
+  
+  // Latest body measurement
+  const latestBody = bodyData.length ? [...bodyData].sort((a,b)=>b.date.localeCompare(a.date))[0] : null;
+  
+  // Progression hints
+  const prog = getProgressionHints();
+  
+  let ctx = `Today: ${today}`;
+  if(daysAgo!==null) ctx += `\nLast session: ${daysAgo===0?'today':daysAgo===1?'yesterday':daysAgo+' days ago'} (${lastDate})`;
+  if(cycle.day) ctx += `\nCycle day: ${cycle.day} (${cycle.phase} phase)`;
+  if(latestBody?.weight_kg) ctx += `\nCurrent weight: ${latestBody.weight_kg}kg`;
+  
+  if(recentSessions.length){
+    const grp = {};
+    recentSessions.forEach(r=>{if(!grp[r.date])grp[r.date]=[];grp[r.date].push(r);});
+    ctx += `\n\nRecent sessions:`;
+    Object.keys(grp).sort((a,b)=>b.localeCompare(a)).forEach(d=>{
+      ctx += `\n${d}: ${grp[d].map(r=>`${r.exercise} ${r.sets}x${r.reps}@${r.weight_kg}kg`).join(', ')}`;
+    });
+  }
+  
+  const progKeys = Object.keys(prog);
+  if(progKeys.length){
+    ctx += `\n\nProgression opportunities (same weight 2+ sessions):`;
+    progKeys.forEach(k=>{ ctx += `\n- ${k}: currently ${prog[k].currentWeight}kg`; });
+  }
+  
+  return ctx;
+}
+
+function updateChatContextBar(){
+  const lastDate = getLastSessionDate();
+  const cycle = getCyclePhase();
+  const parts = [];
+  if(lastDate){
+    const daysAgo = Math.round((new Date()-new Date(lastDate))/(1000*60*60*24));
+    parts.push(daysAgo===0?'trained today':daysAgo===1?'trained yesterday':`last trained ${daysAgo}d ago`);
+  }
+  if(cycle.day) parts.push(`cycle day ${cycle.day}`);
+  if(bodyData.length){
+    const latest=[...bodyData].filter(r=>r.weight_kg).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    if(latest) parts.push(`${latest.weight_kg}kg`);
+  }
+  const bar = document.getElementById('chat-context-bar');
+  if(bar) bar.textContent = parts.length ? parts.join(' · ') : 'No session data loaded';
+}
+
+function chatKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
+}
+
+function appendMsg(role, text){
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg '+role;
+  if(role==='assistant'){
+    // Simple markdown: bold, line breaks
+    div.innerHTML = text
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n/g,'<br>');
+  } else {
+    div.textContent = text;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function sendChat(){
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+  const text = input.value.trim();
+  if(!text) return;
+  
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+  
+  appendMsg('user', text);
+  chatHistory.push({role:'user', content: text});
+  
+  const thinking = appendMsg('thinking', 'thinking…');
+  
+  const systemPrompt = FITNESS_CONTEXT + '\n\n## Current Training Data\n' + getChatContext();
+  
+  try{
+    const res = await fetch(PROXY, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: chatHistory
+      })
+    });
+    const data = await res.json();
+    const reply = data.content[0].text;
+    chatHistory.push({role:'assistant', content: reply});
+    thinking.remove();
+    appendMsg('assistant', reply);
+  } catch(e) {
+    thinking.remove();
+    appendMsg('assistant', 'Something went wrong. Try again.');
+  }
+  
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+// Auto-resize chat input
+document.addEventListener('DOMContentLoaded', ()=>{
+  const inp = document.getElementById('chat-input');
+  if(inp) inp.addEventListener('input', ()=>{
+    inp.style.height='auto';
+    inp.style.height=Math.min(inp.scrollHeight,120)+'px';
+  });
+});
 
 // Init
 document.querySelectorAll('.panel').forEach(p=>{if(!p.classList.contains('active'))p.style.display='none';});
