@@ -516,8 +516,8 @@ function getCyclePhase(){
   const sorted=[...bodyData].filter(r=>r.cycle_day!=null).sort((a,b)=>b.date.localeCompare(a.date));
   if(!sorted.length)return{phase:'unknown',day:null};
   const last=sorted[0];
-  const day=last.cycle_day;
-  // Luteal starts ~day 22 (ovulation day 21-24), cycle avg 35-37 days
+  const daysSince=Math.round((new Date()-new Date(last.date))/(1000*60*60*24));
+  const day=last.cycle_day+daysSince;
   if(day>=22)return{phase:'luteal',day};
   return{phase:'follicular',day};
 }
