@@ -405,7 +405,7 @@ const STRENGTH_STANDARDS = {}; // kept for compatibility
 const LEVELS = ['Beginner','Novice','Intermediate','Advanced','Elite'];
 const LEVEL_COLORS = ['level-beginner','level-novice','level-intermediate','level-advanced','level-elite'];
 
-const strengthCache = {};
+const strengthCache = {}; // cleared on each page load
 
 async function getStrengthLevelFromClaude(exercise, weightKg, bodyweightKg){
   const cacheKey = exercise.toLowerCase()+'_'+bodyweightKg;
@@ -457,14 +457,18 @@ async function renderStrengthBarAsync(exercise, weightKg){
   if(!container) return;
   if(!bw){ container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Log your bodyweight in the Body tab to see strength comparison.</div>'; return; }
   
-  // Try local lookup first
-  let s = getStrengthLevel(exercise, weightKg, bw);
+  // Always try local lookup first — never use Claude if local match exists
+  const localResult = getStandardsForBW(exercise, bw);
+  let s = localResult ? getStrengthLevel(exercise, weightKg, bw) : null;
   
-  // Only call Claude if no local match at all
+  // Only call Claude if no local match
   if(!s){
+    // Clear any stale cache entry for this exercise
+    const cacheKey = exercise.toLowerCase()+'_'+bw;
+    delete strengthCache[cacheKey];
     container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Looking up standards…</div>';
     try{ s = await getStrengthLevelFromClaude(exercise, weightKg, bw); }
-    catch(e){ container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">No standards data available for this exercise.</div>'; return; }
+    catch(e){ container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">No standards data available.</div>'; return; }
   }
   
   if(!s){ container.innerHTML=''; return; }
