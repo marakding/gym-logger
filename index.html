@@ -387,8 +387,14 @@ const STRENGTH_STANDARDS_63 = {
 // Normalize standards by bodyweight ratio (based on 63kg reference)
 function getStandardsForBW(exercise, bw) {
   const exLower = exercise.toLowerCase();
-  const matchKey = Object.keys(STRENGTH_STANDARDS_63).find(k => exLower === k)
-    || Object.keys(STRENGTH_STANDARDS_63).find(k => exLower.includes(k) || k.includes(exLower));
+  const keys = Object.keys(STRENGTH_STANDARDS_63);
+  // Exact match first
+  let matchKey = keys.find(k => exLower === k);
+  // Then longest partial match (more specific = better)
+  if(!matchKey){
+    const partials = keys.filter(k => exLower.includes(k) || k.includes(exLower));
+    if(partials.length) matchKey = partials.sort((a,b) => b.length - a.length)[0];
+  }
   if(!matchKey) return null;
   const base = STRENGTH_STANDARDS_63[matchKey];
   const scale = bw / 63;
@@ -454,11 +460,11 @@ async function renderStrengthBarAsync(exercise, weightKg){
   // Try local lookup first
   let s = getStrengthLevel(exercise, weightKg, bw);
   
-  // If no local match, ask Claude
+  // Only call Claude if no local match at all
   if(!s){
     container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">Looking up standards…</div>';
     try{ s = await getStrengthLevelFromClaude(exercise, weightKg, bw); }
-    catch(e){ container.innerHTML=''; return; }
+    catch(e){ container.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">No standards data available for this exercise.</div>'; return; }
   }
   
   if(!s){ container.innerHTML=''; return; }
@@ -1007,7 +1013,9 @@ function drawGymChart(){
   const labels=Object.keys(grp).sort();
   const vals=labels.map(d=>{const dr=grp[d];return gMetric==='weight'?Math.max(...dr.map(r=>r.weight_kg)):gMetric==='volume'?dr.reduce((s,r)=>s+r.sets*r.reps*r.weight_kg,0):dr.reduce((s,r)=>s+r.sets,0);});
   if(gChart){gChart.destroy();gChart=null;}
-  gChart=new Chart(document.getElementById('gc'),{type:'line',data:{labels,datasets:[{data:vals,borderColor:'#c8f0a0',backgroundColor:'rgba(200,240,160,0.07)',fill:true,tension:0.35,pointRadius:4,pointBackgroundColor:'#c8f0a0',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e1e',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#6b6760',bodyColor:'#f0ede8',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:13},callbacks:{label:c=>gMetric==='weight'?c.parsed.y+'kg':gMetric==='volume'?c.parsed.y+'kg vol':c.parsed.y+' sets'}}},scales:{x:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10},maxRotation:45,autoSkip:true},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'}},y:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'},beginAtZero:false}}}});
+  const gcCanvas=document.getElementById('gc');
+  gcCanvas.getContext('2d').clearRect(0,0,gcCanvas.width,gcCanvas.height);
+  gChart=new Chart(gcCanvas,{type:'line',data:{labels,datasets:[{data:vals,borderColor:'#c8f0a0',backgroundColor:'rgba(200,240,160,0.07)',fill:true,tension:0.35,pointRadius:4,pointBackgroundColor:'#c8f0a0',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e1e',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#6b6760',bodyColor:'#f0ede8',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:13},callbacks:{label:c=>gMetric==='weight'?c.parsed.y+'kg':gMetric==='volume'?c.parsed.y+'kg vol':c.parsed.y+' sets'}}},scales:{x:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10},maxRotation:45,autoSkip:true},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'}},y:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'},beginAtZero:false,min:Math.max(0,Math.min(...vals)*0.85)}}}});
 }
 
 function renderBodyDash(){
@@ -1035,7 +1043,7 @@ function drawBodyChart(){
   document.getElementById('bm-chg').textContent=(chg>0?'+':'')+chg+unit;
   document.getElementById('bm-cnt').textContent=sorted.length;
   if(bChart){bChart.destroy();bChart=null;}
-  bChart=new Chart(document.getElementById('bc'),{type:'line',data:{labels:sorted.map(r=>r.date),datasets:[{data:vals,borderColor:'#a0c8f0',backgroundColor:'rgba(160,200,240,0.07)',fill:true,tension:0.35,pointRadius:sorted.map(r=>r.cycle_day!=null?7:4),pointBackgroundColor:sorted.map(r=>r.cycle_day!=null?'#c8f0a0':'#a0c8f0'),borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e1e',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#6b6760',bodyColor:'#f0ede8',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:13},callbacks:{label:c=>c.parsed.y+unit,afterLabel:c=>sorted[c.dataIndex].cycle_day!=null?'cycle day '+sorted[c.dataIndex].cycle_day:''}}},scales:{x:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10},maxRotation:45,autoSkip:true},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'}},y:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'},beginAtZero:false}}}});
+  bChart=new Chart(document.getElementById('bc'),{type:'line',data:{labels:sorted.map(r=>r.date),datasets:[{data:vals,borderColor:'#a0c8f0',backgroundColor:'rgba(160,200,240,0.07)',fill:true,tension:0.35,pointRadius:sorted.map(r=>r.cycle_day!=null?7:4),pointBackgroundColor:sorted.map(r=>r.cycle_day!=null?'#c8f0a0':'#a0c8f0'),borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e1e',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#6b6760',bodyColor:'#f0ede8',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:13},callbacks:{label:c=>c.parsed.y+unit,afterLabel:c=>sorted[c.dataIndex].cycle_day!=null?'cycle day '+sorted[c.dataIndex].cycle_day:''}}},scales:{x:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10},maxRotation:45,autoSkip:true},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'}},y:{ticks:{color:'#6b6760',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.08)'},beginAtZero:false,min:Math.max(0,Math.min(...vals)*0.85)}}}});
 }
 
 function sMsg(m,msg,t){const el=document.getElementById('sm-'+m);el.textContent=msg;el.className='smsg '+t;}
